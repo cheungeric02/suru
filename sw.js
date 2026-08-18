@@ -1,6 +1,6 @@
 /* する service worker — network-first for the page (so pushes show live),
    cache-first for same-origin assets. Skips cross-origin + non-GET (Firebase untouched). */
-const CACHE = "suru-v2";
+const CACHE = "suru-v3";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
