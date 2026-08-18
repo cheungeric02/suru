@@ -3,127 +3,168 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#e8590c">
+<meta name="theme-color" content="#fff8f5">
 <title>する — today</title>
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script>try{var _t=localStorage.getItem("suru_theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
 <style>
+/* ---------- Material 3 Expressive · seed orange #e8590c ---------- */
 :root{
-  --bg:#fbf7f4; --surface:#ffffff; --surface-2:#f5efe9; --text:#20140c; --muted:#7a6a5e;
-  --line:#ece3da; --accent:#e8590c; --accent-weak:#fde7d6; --done:#2fa84f; --done-weak:#e4f5e9;
-  --gold:#e0a500; --shadow:0 1px 3px rgba(60,40,20,.06),0 8px 26px rgba(60,40,20,.06);
+  color-scheme:light;
+  --primary:#b64a06; --on-primary:#ffffff;
+  --primary-container:#ffdcc7; --on-primary-container:#341100;
+  --secondary-container:#ffddc4; --on-secondary-container:#2b1608;
+  --tertiary-container:#bff0c3; --on-tertiary-container:#052012;
+  --surface:#fff8f5;
+  --sc-low:#fef1ea; --sc:#faebe2; --sc-high:#f4e5dc; --sc-highest:#efe0d6;
+  --on-surface:#221913; --on-surface-variant:#55453b;
+  --outline:#88756a; --outline-variant:#e0cec2;
+  --success:#2e7d46; --error:#ba1a1a;
+  --kaiwa-c:#e7defb; --on-kaiwa-c:#31215a; --kanji-c:#d7e8ff; --on-kanji-c:#0f3f74; --tutor-c:#c6f0d6; --on-tutor-c:#08351f;
+  --elev1:0 1px 2px rgba(80,40,10,.08);
+  --elev2:0 2px 8px rgba(80,40,10,.10),0 1px 2px rgba(80,40,10,.06);
+  --e-standard:cubic-bezier(.2,0,0,1);
 }
 :root[data-theme="dark"]{
-  --bg:#17120e; --surface:#211a15; --surface-2:#2b2219; --text:#f4ece4; --muted:#a99b8d;
-  --line:#332a22; --accent:#ff8a4c; --accent-weak:#3a2415; --done:#4ecb6e; --done-weak:#1e2c20;
-  --gold:#f0c04a; --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+  color-scheme:dark;
+  --primary:#ffb68f; --on-primary:#552100;
+  --primary-container:#78340a; --on-primary-container:#ffdcc7;
+  --secondary-container:#5b4233; --on-secondary-container:#ffddc4;
+  --tertiary-container:#1e4a2a; --on-tertiary-container:#bff0c3;
+  --surface:#191210;
+  --sc-low:#211a15; --sc:#251d18; --sc-high:#302722; --sc-highest:#3b312b;
+  --on-surface:#f1dfd5; --on-surface-variant:#d8c3b6;
+  --outline:#a18d81; --outline-variant:#55453b;
+  --success:#7dd499; --error:#ffb4ab;
+  --kaiwa-c:#332a52; --on-kaiwa-c:#d6c8ff; --kanji-c:#16304f; --on-kanji-c:#adcbff; --tutor-c:#1c3b28; --on-tutor-c:#b6ecc6;
+  --elev1:0 1px 2px rgba(0,0,0,.5);
+  --elev2:0 3px 10px rgba(0,0,0,.5);
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg);color:var(--text);overflow-x:hidden;
+body{margin:0;background:var(--surface);color:var(--on-surface);overflow-x:hidden;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans JP",sans-serif;
-  line-height:1.5;padding:0 16px 40px;max-width:720px;margin:0 auto;}
-header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 2px 10px;}
-.brand{display:flex;align-items:baseline;gap:10px}
-.logo{font-size:2rem;font-weight:800;letter-spacing:.02em;color:var(--accent)}
-.tag{font-size:.9rem;color:var(--muted)}
-.icon-btn{border:1px solid var(--line);background:var(--surface);color:var(--text);
-  width:38px;height:38px;border-radius:11px;font-size:1.05rem;cursor:pointer}
-.icon-btn:active{transform:scale(.96)}
+  line-height:1.5;padding:0 16px 44px;max-width:720px;margin:0 auto;}
 
-/* hero */
-.hero{background:var(--surface);border:1px solid var(--line);border-radius:20px;
-  box-shadow:var(--shadow);padding:20px 18px 18px;text-align:center;margin-top:4px}
-.streak{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:800;
-  font-size:3.4rem;line-height:1}
-.streak .fire{font-size:2.6rem;filter:saturate(1.1)}
-.streak.dim{opacity:.4}
-.streak-lbl{color:var(--muted);font-size:.9rem;margin-top:2px;letter-spacing:.04em;text-transform:uppercase}
-.week{display:flex;gap:8px;justify-content:center;margin:16px 0 4px}
-.dot{width:15px;height:15px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--line)}
-.dot.on{background:var(--done);border-color:var(--done)}
-.dot.today{box-shadow:0 0 0 3px var(--accent-weak);border-color:var(--accent)}
+/* state-layer buttons (M3) */
+.btn{position:relative;overflow:hidden;border:none;cursor:pointer;font-family:inherit;
+  border-radius:999px;font-weight:600;font-size:.92rem;letter-spacing:.01em;
+  transition:transform .12s var(--e-standard);}
+.btn::after{content:"";position:absolute;inset:0;background:currentColor;opacity:0;transition:opacity .15s}
+.btn:hover::after{opacity:.08}.btn:active::after{opacity:.12}
+.btn:active{transform:scale(.97)}
+.btn-filled{background:var(--primary);color:var(--on-primary)}
+.btn-tonal{background:var(--secondary-container);color:var(--on-secondary-container)}
+
+header.top{display:flex;align-items:center;justify-content:space-between;padding:20px 2px 12px;}
+.brand{display:flex;align-items:baseline;gap:11px}
+.logo{font-size:2.1rem;font-weight:800;letter-spacing:.01em;color:var(--primary)}
+.tag{font-size:.9rem;color:var(--on-surface-variant)}
+.hgroup{display:flex;gap:8px}
+.icon-btn{position:relative;overflow:hidden;border:none;background:var(--sc-high);color:var(--on-surface);
+  width:44px;height:44px;border-radius:14px;font-size:1.15rem;cursor:pointer;transition:transform .12s var(--e-standard),border-radius .2s var(--e-standard)}
+.icon-btn::after{content:"";position:absolute;inset:0;background:currentColor;opacity:0;transition:opacity .15s}
+.icon-btn:hover::after{opacity:.08}.icon-btn:active::after{opacity:.12}
+.icon-btn:active{transform:scale(.94);border-radius:999px}
+
+/* hero — expressive primary-container card */
+.hero{background:var(--primary-container);color:var(--on-primary-container);border-radius:32px;
+  box-shadow:var(--elev1);padding:26px 20px 22px;text-align:center;margin-top:4px}
+.streak{display:flex;align-items:center;justify-content:center;gap:8px;font-weight:800;
+  font-size:4rem;line-height:1}
+.streak .fire{font-size:2.9rem;filter:saturate(1.1)}
+.streak.dim{opacity:.45}
+.streak-lbl{color:var(--on-primary-container);opacity:.72;font-size:.82rem;margin-top:4px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+.hero-stats{display:flex;justify-content:center;gap:10px;margin-top:12px}
+.hero-stats .pill{display:inline-flex;align-items:center;gap:6px;background:color-mix(in srgb,var(--on-primary-container) 8%,transparent);
+  border-radius:999px;padding:5px 14px;font-size:.86rem;color:var(--on-primary-container)}
+.hero-stats b{font-weight:800}
+.week{display:flex;gap:9px;justify-content:center;margin:18px 0 4px}
+.dot{width:16px;height:16px;border-radius:50%;background:color-mix(in srgb,var(--on-primary-container) 14%,transparent)}
+.dot.on{background:var(--success)}
+.dot.today{outline:2.5px solid var(--primary);outline-offset:2px}
+.countdown{margin-top:15px;font-size:.92rem;font-weight:700;min-height:1.2em;color:var(--on-primary-container)}
+.countdown.safe{color:var(--success)}
+.countdown .num{font-variant-numeric:tabular-nums}
 .min{margin-top:12px;font-size:.95rem;font-weight:600}
-.min .chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface-2);
-  border:1px solid var(--line);border-radius:999px;padding:4px 11px;margin:3px 3px 0;font-weight:600;font-size:.85rem}
-.min .chip.ok{background:var(--done-weak);border-color:var(--done);color:var(--done)}
-.min .met{color:var(--done)}
+.min .chip{display:inline-flex;align-items:center;gap:5px;background:color-mix(in srgb,var(--on-primary-container) 8%,transparent);
+  border-radius:999px;padding:5px 13px;margin:3px 3px 0;font-weight:600;font-size:.85rem;color:var(--on-primary-container)}
+.min .chip.ok{background:var(--success);color:#fff}
+.min .met{color:var(--success);font-weight:700}
 
-/* suggestion */
-.suggest{margin:16px 0 6px;background:var(--accent-weak);border:1px solid var(--accent);
-  border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px}
-.suggest .lbl{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
-.suggest .txt{font-weight:700;font-size:1.02rem;margin-top:1px}
-.suggest.done{background:var(--done-weak);border-color:var(--done)}
-.suggest.done .lbl{color:var(--done)}
-.suggest a.go{margin-left:auto;flex:none;background:var(--accent);color:#fff;text-decoration:none;
-  border-radius:999px;padding:9px 16px;font-weight:700;font-size:.9rem;white-space:nowrap}
-.suggest.done .ico{margin-left:auto;font-size:1.6rem}
+/* suggestion — tonal */
+.suggest{margin:16px 0 6px;background:var(--secondary-container);color:var(--on-secondary-container);
+  border-radius:24px;padding:16px 20px;display:flex;align-items:center;gap:14px}
+.suggest .lbl{font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700;opacity:.8}
+.suggest .txt{font-weight:700;font-size:1.05rem;margin-top:2px}
+.suggest.done{background:var(--tertiary-container);color:var(--on-tertiary-container)}
+.suggest a.go{margin-left:auto;flex:none;background:var(--primary);color:var(--on-primary);text-decoration:none;
+  border-radius:999px;padding:10px 20px;font-weight:600;font-size:.9rem;white-space:nowrap}
+.suggest.done .ico{margin-left:auto;font-size:1.7rem}
 
-/* tiles */
-.tiles{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+/* tiles — filled tonal cards */
+.tiles{display:grid;grid-template-columns:1fr;gap:12px;margin-top:16px}
 @media(min-width:560px){.tiles{grid-template-columns:1fr 1fr}}
-.tile{background:var(--surface);border:1px solid var(--line);border-radius:18px;
-  box-shadow:var(--shadow);padding:15px 15px 14px;display:flex;flex-direction:column;gap:10px;position:relative}
-.tile.on{border-color:color-mix(in srgb,var(--done) 45%,var(--line))}
-.thead{display:flex;align-items:center;gap:11px}
-.ti{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;
-  font-size:1.25rem;font-weight:800;background:var(--accent-weak);color:var(--accent)}
-.tile[data-app="kaiwa"] .ti{background:#e9e6fb;color:#6750a4}
-.tile[data-app="kanji"] .ti{background:#dcecff;color:#2f6fd6}
-.tile[data-app="anki"] .ti{background:var(--surface-2);color:var(--text)}
-.tile[data-app="tutor"] .ti{background:#e6f6ef;color:#0f9d6b}
-:root[data-theme="dark"] .tile[data-app="kaiwa"] .ti{background:#2b2544;color:#c7b8ff}
-:root[data-theme="dark"] .tile[data-app="kanji"] .ti{background:#16283f;color:#8bb8ff}
-:root[data-theme="dark"] .tile[data-app="tutor"] .ti{background:#16302447;color:#5fd0a0}
-.tn{font-weight:700;font-size:1rem}
-.ts{font-size:.78rem;color:var(--muted)}
-.badge{margin-left:auto;flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
-  font-size:.9rem;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
-.badge.on{background:var(--done);color:#fff;border-color:var(--done)}
-.tstat{font-size:.9rem;color:var(--muted);min-height:1.2em}
-.tstat b{color:var(--text);font-weight:700}
-.tstat .big{font-size:1.15rem;color:var(--accent);font-weight:800}
-.trow{display:flex;gap:8px;margin-top:auto}
-.mark{flex:1;border:1px solid var(--done);background:transparent;color:var(--done);
-  border-radius:11px;padding:10px;font-weight:700;font-size:.9rem;cursor:pointer}
-.mark.done{background:var(--done);color:#fff}
-.mark:active{transform:scale(.98)}
-.open{flex:none;border:1px solid var(--line);background:var(--surface-2);color:var(--text);
-  text-decoration:none;border-radius:11px;padding:10px 14px;font-weight:700;font-size:.9rem;text-align:center}
+.tile{background:var(--sc-high);border-radius:26px;padding:18px 18px 16px;
+  display:flex;flex-direction:column;gap:12px;position:relative;transition:background .2s var(--e-standard)}
+.tile.on{background:var(--tertiary-container);color:var(--on-tertiary-container)}
+.thead{display:flex;align-items:center;gap:12px}
+.ti{width:46px;height:46px;flex:none;border-radius:16px;display:grid;place-items:center;
+  font-size:1.3rem;font-weight:800;background:var(--primary-container);color:var(--on-primary-container)}
+.tile[data-app="kaiwa"] .ti{background:var(--kaiwa-c);color:var(--on-kaiwa-c)}
+.tile[data-app="kanji"] .ti{background:var(--kanji-c);color:var(--on-kanji-c)}
+.tile[data-app="anki"] .ti{background:var(--sc-highest);color:var(--on-surface)}
+.tile[data-app="tutor"] .ti{background:var(--tutor-c);color:var(--on-tutor-c)}
+.tn{font-weight:700;font-size:1.02rem}
+.ts{font-size:.78rem;color:var(--on-surface-variant)}
+.tile.on .ts{color:inherit;opacity:.8}
+.badge{margin-left:auto;flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  font-size:.9rem;background:transparent;color:var(--outline);border:2px solid var(--outline-variant)}
+.badge.on{background:var(--success);color:#fff;border-color:var(--success)}
+.tstat{font-size:.9rem;color:var(--on-surface-variant);min-height:1.2em}
+.tile.on .tstat{color:inherit;opacity:.9}
+.tstat b{color:var(--on-surface);font-weight:700}
+.tile.on .tstat b{color:inherit}
+.tstat .big{font-size:1.2rem;color:var(--primary);font-weight:800}
+.tile.on .tstat .big{color:inherit}
+.trow{display:flex;gap:10px;margin-top:auto}
+.mark{flex:1;padding:11px}
+.mark:not(.done){background:var(--sc-highest);color:var(--on-surface)}
+.tile.on .mark:not(.done){background:color-mix(in srgb,var(--on-tertiary-container) 12%,transparent);color:inherit}
+.mark.done{background:var(--success);color:#fff}
+.open{flex:none;background:var(--secondary-container);color:var(--on-secondary-container);
+  text-decoration:none;padding:11px 18px;text-align:center;display:inline-flex;align-items:center;justify-content:center}
 .tile[data-auto] .open{flex:1}
 
-/* sync */
-.sync{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px}
-.sync h3{margin:0 0 4px;font-size:.95rem}
-.sync p{margin:0 0 10px;font-size:.82rem;color:var(--muted)}
-.syncrow{display:flex;gap:8px}
-.sync input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--text);
-  border-radius:10px;padding:10px 12px;font-size:.95rem}
-.sync button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:10px;
-  padding:10px 15px;font-weight:700;cursor:pointer;font-size:.9rem;white-space:nowrap}
-.cloudstatus{margin-top:9px;font-size:.82rem;color:var(--muted)}
-.cloudstatus.on{color:var(--done)} .cloudstatus.err{color:#d9534f}
-
-/* hero: longest streak + countdown */
-.hero-stats{display:flex;justify-content:center;gap:18px;margin-top:9px;font-size:.85rem;color:var(--muted)}
-.hero-stats b{color:var(--text);font-weight:800}
-.countdown{margin-top:13px;font-size:.92rem;font-weight:700;min-height:1.2em}
-.countdown.safe{color:var(--done)}
-.countdown.warn{color:var(--accent)}
-.countdown .num{font-variant-numeric:tabular-nums}
-
-/* reminder settings */
-.rrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.rrow input[type=checkbox]{width:19px;height:19px;accent-color:var(--accent);flex:none}
+/* settings (collapsible) */
+.settings{margin-top:24px;background:var(--sc-low);border-radius:28px;overflow:hidden}
+.settings>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;
+  padding:18px 20px;font-weight:700;font-size:1rem;position:relative}
+.settings>summary::-webkit-details-marker{display:none}
+.settings>summary .chev{margin-left:auto;transition:transform .25s var(--e-standard);color:var(--on-surface-variant)}
+.settings[open]>summary .chev{transform:rotate(180deg)}
+.settings>summary .gear{font-size:1.15rem}
+.settings-body{padding:0 20px 6px}
+.card{background:var(--sc);border-radius:20px;padding:16px 16px 15px;margin-bottom:14px}
+.card h3{margin:0 0 5px;font-size:.98rem}
+.card p{margin:0 0 12px;font-size:.82rem;color:var(--on-surface-variant);line-height:1.5}
+.syncrow{display:flex;gap:10px}
+.syncrow input{flex:1;min-width:0;border:1.5px solid var(--outline-variant);background:var(--surface);color:var(--on-surface);
+  border-radius:14px;padding:12px 14px;font-size:.95rem}
+.syncrow input:focus{outline:none;border-color:var(--primary)}
+.syncrow .btn{padding:12px 18px;white-space:nowrap}
+.cloudstatus{margin-top:11px;font-size:.82rem;color:var(--on-surface-variant)}
+.cloudstatus.on{color:var(--success)} .cloudstatus.err{color:var(--error)}
+.rrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rrow input[type=checkbox]{width:20px;height:20px;accent-color:var(--primary);flex:none}
 .rrow label{font-weight:600;font-size:.95rem}
-.rrow input[type=time]{border:1px solid var(--line);background:var(--bg);color:var(--text);
-  border-radius:9px;padding:8px 10px;font-size:.95rem}
-.hint-note{margin-top:9px;font-size:.76rem;color:var(--muted);line-height:1.45}
+.rrow input[type=time]{border:1.5px solid var(--outline-variant);background:var(--surface);color:var(--on-surface);
+  border-radius:12px;padding:9px 12px;font-size:.95rem}
+.hint-note{margin-top:11px;font-size:.76rem;color:var(--on-surface-variant);line-height:1.5}
 
-footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.75rem}
+footer{margin-top:28px;text-align:center;color:var(--on-surface-variant);font-size:.75rem;opacity:.8}
 .hidden{display:none!important}
 </style>
 </head>
@@ -131,13 +172,16 @@ footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.75rem}
 
 <header class="top">
   <div class="brand"><span class="logo">する</span><span class="tag">今日、やる。 Do it today.</span></div>
-  <button id="themeBtn" class="icon-btn" title="Light / dark">☾</button>
+  <div class="hgroup">
+    <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+    <button id="themeBtn" class="icon-btn" title="Light / dark" aria-label="Light or dark theme">☾</button>
+  </div>
 </header>
 
 <section class="hero">
   <div class="streak" id="streak"><span class="fire">🔥</span><span id="streakNum">0</span></div>
   <div class="streak-lbl">day streak</div>
-  <div class="hero-stats"><span>Longest 🏆 <b id="bestNum">0</b></span></div>
+  <div class="hero-stats"><span class="pill">Longest 🏆 <b id="bestNum">0</b></span></div>
   <div class="week" id="week"></div>
   <div class="min" id="minStatus"></div>
   <div class="countdown" id="countdown"></div>
@@ -154,21 +198,21 @@ footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.75rem}
   <article class="tile" data-app="soku" data-auto>
     <div class="thead"><span class="ti">速</span><div><div class="tn">速読 Sokudoku</div><div class="ts">Reading speed</div></div><span class="badge" id="b-soku"></span></div>
     <div class="tstat" id="s-soku">—</div>
-    <div class="trow"><a class="open" href="https://cheungeric02.github.io/sokudoku/" target="_blank" rel="noopener">Open ↗</a></div>
+    <div class="trow"><a class="open btn" href="https://cheungeric02.github.io/sokudoku/" target="_blank" rel="noopener">Open ↗</a></div>
   </article>
 
   <article class="tile" data-app="kaiwa" data-auto>
     <div class="thead"><span class="ti">会</span><div><div class="tn">会話 Kaiwa</div><div class="ts">Speaking practice</div></div><span class="badge" id="b-kaiwa"></span></div>
     <div class="tstat" id="s-kaiwa">—</div>
-    <div class="trow"><a class="open" href="https://cheungeric02.github.io/kaiwa/" target="_blank" rel="noopener">Open ↗</a></div>
+    <div class="trow"><a class="open btn" href="https://cheungeric02.github.io/kaiwa/" target="_blank" rel="noopener">Open ↗</a></div>
   </article>
 
   <article class="tile" data-app="kanji">
     <div class="thead"><span class="ti">漢</span><div><div class="tn">Core 2000 Kanji</div><div class="ts">Reading trees</div></div><span class="badge" id="b-kanji"></span></div>
     <div class="tstat" id="s-kanji">—</div>
     <div class="trow">
-      <button class="mark" data-kind="kanji">Mark done today</button>
-      <a class="open" href="https://cheungeric02.github.io/core2000-kanji-app/" target="_blank" rel="noopener">Open ↗</a>
+      <button class="mark btn" data-kind="kanji">Mark done today</button>
+      <a class="open btn" href="https://cheungeric02.github.io/core2000-kanji-app/" target="_blank" rel="noopener">Open ↗</a>
     </div>
   </article>
 
@@ -176,39 +220,43 @@ footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.75rem}
     <div class="thead"><span class="ti">A</span><div><div class="tn">Anki</div><div class="ts">Core 2k SRS reviews</div></div><span class="badge" id="b-anki"></span></div>
     <div class="tstat" id="s-anki">Tap when today’s reviews are cleared.</div>
     <div class="trow">
-      <button class="mark" data-kind="anki">Mark done today</button>
-      <a class="open" href="https://ankiweb.net/decks" target="_blank" rel="noopener">AnkiWeb ↗</a>
+      <button class="mark btn" data-kind="anki">Mark done today</button>
     </div>
   </article>
 
   <article class="tile" data-app="tutor">
     <div class="thead"><span class="ti">師</span><div><div class="tn">Tutor lesson</div><div class="ts">Weekly · 先生</div></div><span class="badge" id="b-tutor"></span></div>
     <div class="tstat" id="s-tutor">Once a week — doesn’t affect the daily streak.</div>
-    <div class="trow"><button class="mark" data-kind="tutor">Mark this week’s lesson done</button></div>
+    <div class="trow"><button class="mark btn" data-kind="tutor">Mark this week’s lesson done</button></div>
   </article>
 </main>
 
-<section class="sync">
-  <h3>Sync</h3>
-  <p>Type the <b>same sync key</b> you use in Sokudoku / Kaiwa / Kanji. する reads your progress from it — it’s a shared secret, not a login.</p>
-  <div class="syncrow">
-    <input id="keyInput" type="text" placeholder="your sync key" autocomplete="off" autocapitalize="off" spellcheck="false">
-    <button id="keyBtn">Turn on</button>
-  </div>
-  <div class="cloudstatus" id="cloudStatus">Cloud sync is off.</div>
-</section>
+<details class="settings" id="settings">
+  <summary><span class="gear">⚙</span> Settings <span class="chev">⌄</span></summary>
+  <div class="settings-body">
+    <div class="card">
+      <h3>Sync</h3>
+      <p>Type the <b>same sync key</b> you use in Sokudoku / Kaiwa / Kanji. する reads your progress from it — it’s a shared secret, not a login.</p>
+      <div class="syncrow">
+        <input id="keyInput" type="text" placeholder="your sync key" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button id="keyBtn" class="btn btn-filled">Turn on</button>
+      </div>
+      <div class="cloudstatus" id="cloudStatus">Cloud sync is off.</div>
+    </div>
 
-<section class="sync" id="reminderSec">
-  <h3>Streak reminder</h3>
-  <p>A nudge on this device if you still haven’t hit today’s minimum. Fires while する is open, and — where your phone supports it — as a scheduled alert when it’s installed but closed.</p>
-  <div class="rrow">
-    <input type="checkbox" id="notifyOn">
-    <label for="notifyOn">Remind me at</label>
-    <input type="time" id="notifyTime" value="23:00" step="60">
+    <div class="card" id="reminderSec">
+      <h3>Streak reminder</h3>
+      <p>A nudge on this device if you still haven’t hit today’s minimum. Fires while する is open, and — where your phone supports it — as a scheduled alert when it’s installed but closed.</p>
+      <div class="rrow">
+        <input type="checkbox" id="notifyOn">
+        <label for="notifyOn">Remind me at</label>
+        <input type="time" id="notifyTime" value="23:00" step="60">
+      </div>
+      <div class="cloudstatus" id="notifyStatus">Reminder off.</div>
+      <div class="hint-note">Time syncs across your devices. A guaranteed nightly reminder even when the app is fully closed needs a one-time server setup — ask me if you want it.</div>
+    </div>
   </div>
-  <div class="cloudstatus" id="notifyStatus">Reminder off.</div>
-  <div class="hint-note">Time syncs across your devices. A guaranteed nightly reminder even when the app is fully closed needs a one-time server setup — ask me if you want it.</div>
-</section>
+</details>
 
 <footer>する · 今日、やる。 · the day resets at 3:00 AM</footer>
 
@@ -621,12 +669,19 @@ for(const k of ["suru_synckey","jp_cpm_synckey","c2k_synckey","kaiwa_synckey"]){
 if(saved){ $("keyInput").value=saved; if(db) connect(saved); }
 else { render(); }
 
+/* ---------- settings drawer ---------- */
+$("settingsBtn").addEventListener("click", ()=>{
+  const d=$("settings"); d.open=!d.open;
+  if(d.open) requestAnimationFrame(()=>d.scrollIntoView({behavior:"smooth", block:"start"}));
+});
+if(!saved) $("settings").open = true;   // first run with no key → show settings so they can connect
+
 /* ---------- theme ---------- */
 $("themeBtn").addEventListener("click", ()=>{
   const cur=document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light";
   const next=cur==="dark"?"light":"dark";
   document.documentElement.setAttribute("data-theme",next);
-  document.querySelector('meta[name=theme-color]').setAttribute("content", next==="dark"?"#17120e":"#e8590c");
+  document.querySelector('meta[name=theme-color]').setAttribute("content", next==="dark"?"#191210":"#fff8f5");
   try{localStorage.setItem("suru_theme",next);}catch(e){}
   $("themeBtn").textContent = next==="dark"?"☀":"☾";
 });
