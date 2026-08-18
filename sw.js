@@ -1,6 +1,6 @@
 /* する service worker — network-first for the page (so pushes show live),
    cache-first for same-origin assets. Skips cross-origin + non-GET (Firebase untouched). */
-const CACHE = "suru-v1";
+const CACHE = "suru-v2";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -26,4 +26,15 @@ self.addEventListener("fetch", e => {
       const cp = r.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return r;
     })));
   }
+});
+
+/* tap a streak reminder → focus an open tab or open the app */
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const target = (e.notification.data && e.notification.data.url) || "./";
+  e.waitUntil((async () => {
+    const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    for (const c of all) { if ("focus" in c) { c.focus(); return; } }
+    if (self.clients.openWindow) await self.clients.openWindow(target);
+  })());
 });

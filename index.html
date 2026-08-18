@@ -106,6 +106,23 @@ header.top{display:flex;align-items:center;justify-content:space-between;padding
   padding:10px 15px;font-weight:700;cursor:pointer;font-size:.9rem;white-space:nowrap}
 .cloudstatus{margin-top:9px;font-size:.82rem;color:var(--muted)}
 .cloudstatus.on{color:var(--done)} .cloudstatus.err{color:#d9534f}
+
+/* hero: longest streak + countdown */
+.hero-stats{display:flex;justify-content:center;gap:18px;margin-top:9px;font-size:.85rem;color:var(--muted)}
+.hero-stats b{color:var(--text);font-weight:800}
+.countdown{margin-top:13px;font-size:.92rem;font-weight:700;min-height:1.2em}
+.countdown.safe{color:var(--done)}
+.countdown.warn{color:var(--accent)}
+.countdown .num{font-variant-numeric:tabular-nums}
+
+/* reminder settings */
+.rrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rrow input[type=checkbox]{width:19px;height:19px;accent-color:var(--accent);flex:none}
+.rrow label{font-weight:600;font-size:.95rem}
+.rrow input[type=time]{border:1px solid var(--line);background:var(--bg);color:var(--text);
+  border-radius:9px;padding:8px 10px;font-size:.95rem}
+.hint-note{margin-top:9px;font-size:.76rem;color:var(--muted);line-height:1.45}
+
 footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.75rem}
 .hidden{display:none!important}
 </style>
@@ -120,8 +137,10 @@ footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.75rem}
 <section class="hero">
   <div class="streak" id="streak"><span class="fire">🔥</span><span id="streakNum">0</span></div>
   <div class="streak-lbl">day streak</div>
+  <div class="hero-stats"><span>Longest 🏆 <b id="bestNum">0</b></span></div>
   <div class="week" id="week"></div>
   <div class="min" id="minStatus"></div>
+  <div class="countdown" id="countdown"></div>
 </section>
 
 <section class="suggest" id="suggest">
@@ -179,6 +198,18 @@ footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.75rem}
   <div class="cloudstatus" id="cloudStatus">Cloud sync is off.</div>
 </section>
 
+<section class="sync" id="reminderSec">
+  <h3>Streak reminder</h3>
+  <p>A nudge on this device if you still haven’t hit today’s minimum. Fires while する is open, and — where your phone supports it — as a scheduled alert when it’s installed but closed.</p>
+  <div class="rrow">
+    <input type="checkbox" id="notifyOn">
+    <label for="notifyOn">Remind me at</label>
+    <input type="time" id="notifyTime" value="23:00" step="60">
+  </div>
+  <div class="cloudstatus" id="notifyStatus">Reminder off.</div>
+  <div class="hint-note">Time syncs across your devices. A guaranteed nightly reminder even when the app is fully closed needs a one-time server setup — ask me if you want it.</div>
+</section>
+
 <footer>する · 今日、やる。 · the day resets at 3:00 AM</footer>
 
 <script type="module">
@@ -213,9 +244,10 @@ const dayKey = d => fmt(shift(d));                 // suru-day for a timestamp/d
 function weekKey(d){ const s=shift(d||new Date()); const base=new Date(s.getFullYear(),s.getMonth(),s.getDate());
   const wd=(base.getDay()+6)%7; base.setDate(base.getDate()-wd); return fmt(base); }
 const coerce = v => { if(v==null) return null; if(typeof v==="string"){ try{return JSON.parse(v);}catch(e){return null;} } return v; };
+const fromKey = k => { const [y,m,dd]=k.split("-").map(Number); return new Date(y,(m||1)-1,dd||1); }; // suru-day string → Date
 
 /* ---------- state ---------- */
-const state = { soku:[], kaiwa:null, core:null, hub:{checks:{},tutor:[]}, connected:false };
+const state = { soku:[], kaiwa:null, core:null, hub:{checks:{},tutor:[],record:0,notify:{enabled:false,time:"23:00"}}, connected:false };
 let db=null, safe="", refs=[];
 
 /* derived day-sets */
@@ -243,6 +275,26 @@ function computeStreak(){
   if(!doneDay(dayKey(d),sSet,kSet)) d.setDate(d.getDate()-1); // today not done yet is OK
   while(doneDay(dayKey(d),sSet,kSet)){ n++; d.setDate(d.getDate()-1); }
   return n;
+}
+/* Longest run of consecutive done-days across all recorded history.
+   Day-keys are already suru-days, so iterating fromKey→+1 day and re-formatting with
+   fmt (no shift) walks consecutive suru-days. Capped so it can't run away. */
+function computeBestStreak(){
+  const sSet=sokuDaySet(), kSet=kaiwaDaySet();
+  const days=new Set();
+  sSet.forEach(k=>days.add(k)); kSet.forEach(k=>days.add(k));
+  Object.keys(state.hub.checks||{}).forEach(k=>days.add(k));
+  const sorted=[...days].sort();
+  if(!sorted.length) return 0;
+  const endKey=dayKey(new Date());
+  let d=fromKey(sorted[0]), best=0, run=0;
+  for(let i=0;i<600;i++){
+    const k=fmt(d);
+    if(doneDay(k,sSet,kSet)){ run++; if(run>best) best=run; } else { run=0; }
+    if(k===endKey) break;
+    d.setDate(d.getDate()+1);
+  }
+  return best;
 }
 
 /* ---------- render ---------- */
@@ -304,6 +356,10 @@ function render(){
   const streak = computeStreak();
   $("streakNum").textContent = streak;
   $("streak").classList.toggle("dim", streak===0);
+  // longest streak (durable high-water mark, persisted in the hub log so it never drops)
+  let best = Math.max(computeBestStreak(), state.hub.record||0);
+  if(best > (state.hub.record||0)){ state.hub.record = best; if(state.connected) pushHub(); }
+  $("bestNum").textContent = best;
   const wk=$("week"); wk.innerHTML="";
   for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=dayKey(d);
     const dot=document.createElement("div"); dot.className="dot"+(doneDay(k,sSet,kSet)?" on":"")+(i===0?" today":"");
@@ -316,6 +372,10 @@ function render(){
   $("minStatus").innerHTML = met
     ? `<span class="met">✓ Today’s minimum met — streak is safe. 🔥</span>`
     : `<span class="chip${ankiT?" ok":""}">${ankiT?"✓":"○"} Anki</span><span class="chip${claudeT?" ok":""}">${claudeT?"✓":"○"} 1 app</span>`;
+
+  // --- countdown + reminder reschedule ---
+  renderCountdown();
+  if(_lastMet!==met){ _lastMet=met; scheduleReminders(); }
 
   // --- suggestion ---
   renderSuggestion(ankiT, claudeT, kToday, sTodayReads);
@@ -372,12 +432,26 @@ function status(msg, st){ const el=$("cloudStatus"); el.textContent=msg; el.clas
 
 function mergeHub(remote){
   remote = remote || {checks:{},tutor:[]};
-  const out = { checks:Object.assign({}, remote.checks||{}), tutor:Array.from(new Set([...(remote.tutor||[]), ...(state.hub.tutor||[])])) };
+  const out = {
+    checks:Object.assign({}, remote.checks||{}),
+    tutor:Array.from(new Set([...(remote.tutor||[]), ...(state.hub.tutor||[])])),
+    record:Math.max(remote.record||0, state.hub.record||0),                 // never decreases
+    notify:Object.assign({enabled:false, time:"23:00"}, remote.notify||{})  // remote wins across devices
+  };
   // union local positive checks so an in-flight tap is never lost to a stale snapshot
   for(const day in (state.hub.checks||{})){
     out.checks[day]=Object.assign({}, out.checks[day]||{}, state.hub.checks[day]);
   }
   return out;
+}
+/* keep the reminder controls in step with whatever a synced device saved */
+function applyRemoteNotify(n){
+  if(!n) return;
+  try{ localStorage.setItem("suru_notify_on", n.enabled?"1":"0"); localStorage.setItem("suru_notify_time", n.time||"23:00"); }catch(e){}
+  const on=$("notifyOn"), tm=$("notifyTime");
+  if(on && document.activeElement!==on) on.checked=!!n.enabled;
+  if(tm && document.activeElement!==tm) tm.value=n.time||"23:00";
+  updateNotifyStatus(); scheduleReminders();
 }
 function pushHub(){ if(!db||!state.connected) return; set(ref(db,"hub/"+safe+"/log"), JSON.stringify(state.hub))
   .catch(e=>{ status("Sync error — check the database rules.","err"); console.warn("[suru] hub write",e); }); }
@@ -398,8 +472,133 @@ function connect(key){
   watch("sokudoku/"+safe+"/blob", v=>{ state.soku = Array.isArray(v)? v : []; });
   watch("kaiwa/"+safe+"/blob",    v=>{ state.kaiwa = v||null; });
   watch("core2000/"+safe+"/state",v=>{ state.core = v||null; });
-  watch("hub/"+safe+"/log",       v=>{ state.hub = mergeHub(v); });
+  watch("hub/"+safe+"/log",       v=>{ state.hub = mergeHub(v); applyRemoteNotify(state.hub.notify); });
 }
+
+/* ---------- countdown ---------- */
+function isMetToday(){
+  const T=dayKey(); const sSet=sokuDaySet(), kSet=kaiwaDaySet();
+  return ankiDone(T) && (sSet.has(T) || kaiwaOn(T,kSet) || kanjiDone(T));
+}
+function nextResetTs(){                       // ms timestamp of the next 3 AM rollover
+  const now=new Date();
+  const c=new Date(now.getFullYear(),now.getMonth(),now.getDate(),RESET_HOUR,0,0,0);
+  if(now.getTime()>=c.getTime()) c.setDate(c.getDate()+1);
+  return c.getTime();
+}
+function renderCountdown(){
+  const el=$("countdown"); if(!el) return;
+  if(!state.connected){ el.className="countdown"; el.textContent=""; return; }
+  if(isMetToday()){ el.className="countdown safe"; el.textContent="✓ Safe until 3:00 AM — come back tomorrow."; return; }
+  const ms=Math.max(0, nextResetTs()-Date.now());
+  const h=Math.floor(ms/3600000), m=Math.floor(ms%3600000/60000), s=Math.floor(ms%60000/1000);
+  const streak=computeStreak();
+  const lead = streak>0 ? `Keep your ${streak}-day streak` : "Start a streak";
+  el.className="countdown warn";
+  el.innerHTML=`⏳ ${lead} — <span class="num">${h}h ${String(m).padStart(2,"0")}m ${String(s).padStart(2,"0")}s</span> left today`;
+}
+setInterval(renderCountdown, 1000);
+
+/* ---------- reminder (client-side notifications) ----------
+   Honest scope: a static PWA has no server, so it can't guarantee a push when fully
+   closed. This fires (a) while する is open, and (b) as a scheduled alert via Notification
+   Triggers where the phone supports them (installed + closed). Time syncs via the hub log. */
+const notifyOn=$("notifyOn"), notifyTime=$("notifyTime"), notifyStatus=$("notifyStatus");
+let _lastMet=null;
+
+function loadNotifyPrefs(){
+  let on=false, time="23:00";
+  try{ on=localStorage.getItem("suru_notify_on")==="1"; }catch(e){}
+  try{ const t=localStorage.getItem("suru_notify_time"); if(t) time=t; }catch(e){}
+  return { enabled:on, time };
+}
+function updateNotifyStatus(msg){
+  if(msg){ notifyStatus.textContent=msg; notifyStatus.className="cloudstatus err"; return; }
+  if(!notifyOn.checked){ notifyStatus.textContent="Reminder off."; notifyStatus.className="cloudstatus"; return; }
+  const perm=("Notification" in window)? Notification.permission : "unsupported";
+  if(perm==="granted"){ notifyStatus.textContent=`On — I’ll nudge you at ${notifyTime.value} if you’re not done.`; notifyStatus.className="cloudstatus on"; }
+  else { notifyStatus.textContent="Turn on notifications for this site to get the reminder."; notifyStatus.className="cloudstatus err"; }
+}
+function persistNotify(){
+  const val={ enabled:notifyOn.checked, time:notifyTime.value||"23:00" };
+  try{ localStorage.setItem("suru_notify_on", val.enabled?"1":"0"); localStorage.setItem("suru_notify_time", val.time); }catch(e){}
+  state.hub.notify=val; if(state.connected) pushHub();
+}
+async function scheduleReminders(){
+  // clear any previously-scheduled trigger for this app
+  try{
+    if("serviceWorker" in navigator){
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(reg){ (await reg.getNotifications({includeTriggered:true, tag:"suru-streak"})).forEach(n=>n.close()); }
+    }
+  }catch(e){}
+  if(!notifyOn.checked || !("Notification" in window) || Notification.permission!=="granted") return;
+  // Best-effort closed-app alert via Notification Triggers (Chrome/Android where available).
+  try{
+    if("serviceWorker" in navigator && "TimestampTrigger" in window){
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(reg){
+        const when = isMetToday() ? notifyMoment(true) : notifyMoment(false);
+        await reg.showNotification("🔥 する — keep your streak", {
+          tag:"suru-streak",
+          body:"You haven’t hit today’s minimum yet. A quick review keeps your streak alive.",
+          icon:"icon-192.png", badge:"icon-192.png",
+          showTrigger:new TimestampTrigger(when),
+          data:{ url:"./" }
+        });
+      }
+    }
+  }catch(e){ /* triggers unsupported → the while-open check below still covers it */ }
+}
+function notifyMoment(forTomorrow){
+  const [hh,mm]=(notifyTime.value||"23:00").split(":").map(Number);
+  const now=new Date();
+  const t=new Date(now.getFullYear(),now.getMonth(),now.getDate(),hh||23,mm||0,0,0);
+  if(forTomorrow || now.getTime()>=t.getTime()) t.setDate(t.getDate()+1);
+  return t.getTime();
+}
+// Android Chrome forbids `new Notification()` — must go through the SW registration.
+async function notifyNow(title, body){
+  try{
+    if("serviceWorker" in navigator){
+      const reg=await navigator.serviceWorker.getRegistration();
+      if(reg){ await reg.showNotification(title, {body, icon:"icon-192.png", badge:"icon-192.png", tag:"suru-nudge", data:{url:"./"}}); return; }
+    }
+  }catch(e){}
+  try{ new Notification(title, {body, icon:"icon-192.png"}); }catch(e){}
+}
+notifyOn.addEventListener("change", async ()=>{
+  if(notifyOn.checked){
+    if(!("Notification" in window)){ notifyOn.checked=false; updateNotifyStatus("This browser can’t show notifications."); return; }
+    if(Notification.permission!=="granted"){
+      const perm=await Notification.requestPermission();
+      if(perm!=="granted"){ notifyOn.checked=false; updateNotifyStatus("Notifications are blocked — allow them in your browser settings."); return; }
+    }
+  }
+  persistNotify(); updateNotifyStatus(); scheduleReminders();
+});
+notifyTime.addEventListener("change", ()=>{ persistNotify(); updateNotifyStatus(); scheduleReminders(); });
+
+// while-open nudge: once per suru-day, after the chosen time, only if not done
+setInterval(()=>{
+  if(!notifyOn.checked || !state.connected) return;
+  if(!("Notification" in window) || Notification.permission!=="granted") return;
+  const T=dayKey();
+  let last=""; try{ last=localStorage.getItem("suru_notified")||""; }catch(e){}
+  if(last===T) return;
+  const [hh,mm]=(notifyTime.value||"23:00").split(":").map(Number);
+  const now=new Date();
+  const target=new Date(now.getFullYear(),now.getMonth(),now.getDate(),hh||23,mm||0,0,0);
+  if(now.getTime()>=target.getTime() && !isMetToday()){
+    const streak=computeStreak();
+    notifyNow("🔥 する — keep your streak",
+      (streak>0?`Your ${streak}-day streak ends at 3 AM. `:"")+"You haven’t hit today’s minimum — a quick review keeps it alive.");
+    try{ localStorage.setItem("suru_notified", T); }catch(e){}
+  }
+}, 30000);
+
+// initialize controls from this device's saved prefs (hub sync may refine them on connect)
+(function initNotify(){ const p=loadNotifyPrefs(); notifyOn.checked=p.enabled; notifyTime.value=p.time; updateNotifyStatus(); scheduleReminders(); })();
 
 /* ---------- init ---------- */
 try{
