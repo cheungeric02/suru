@@ -179,7 +179,7 @@ footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.75rem}
   <div class="cloudstatus" id="cloudStatus">Cloud sync is off.</div>
 </section>
 
-<footer>する · 今日、やる。 · your Japanese hub</footer>
+<footer>する · 今日、やる。 · the day resets at 3:00 AM</footer>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -202,9 +202,16 @@ const URLS = {
   kanji:"https://cheungeric02.github.io/core2000-kanji-app/"
 };
 
-/* ---------- date helpers (day key format matches Kaiwa exactly) ---------- */
-const dayKey = d => { d=d||new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
-function weekKey(d){ const x=new Date(d||new Date()); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); return dayKey(x); }
+/* ---------- date helpers ----------
+   The "day" rolls over at 3 AM, not midnight — so late-night reviews (before bed)
+   count toward the day you're ending. Applied to timestamps, manual checks + streak.
+   Day-key string format still matches Kaiwa's (YYYY-MM-DD). */
+const RESET_HOUR = 3;
+const shift = d => new Date((d?new Date(d):new Date()).getTime() - RESET_HOUR*3600*1000);
+const fmt = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const dayKey = d => fmt(shift(d));                 // suru-day for a timestamp/date (or now)
+function weekKey(d){ const s=shift(d||new Date()); const base=new Date(s.getFullYear(),s.getMonth(),s.getDate());
+  const wd=(base.getDay()+6)%7; base.setDate(base.getDate()-wd); return fmt(base); }
 const coerce = v => { if(v==null) return null; if(typeof v==="string"){ try{return JSON.parse(v);}catch(e){return null;} } return v; };
 
 /* ---------- state ---------- */
@@ -217,8 +224,17 @@ function kaiwaDaySet(){ return new Set((state.kaiwa&&state.kaiwa.stats&&state.ka
 
 function ankiDone(k){ return !!(state.hub.checks[k]&&state.hub.checks[k].anki); }
 function kanjiDone(k){ return !!(state.hub.checks[k]&&state.hub.checks[k].kanji); }
+/* Kaiwa only stores calendar dates (no times), so it can't be 3 AM-shifted like the rest.
+   Grace: if it's currently before 3 AM, a session stamped with today's calendar date
+   belongs to the current (still-open) suru-day. */
+function kaiwaOn(k, kSet){
+  if(kSet.has(k)) return true;
+  const now=new Date();
+  if(now.getHours()<RESET_HOUR && k===dayKey(now) && kSet.has(fmt(now))) return true;
+  return false;
+}
 function doneDay(k, sSet, kSet){
-  const claude = sSet.has(k) || kSet.has(k) || kanjiDone(k);
+  const claude = sSet.has(k) || kaiwaOn(k, kSet) || kanjiDone(k);
   return ankiDone(k) && claude;   // the minimum: Anki + one Claude app
 }
 function computeStreak(){
@@ -248,7 +264,7 @@ function render(){
   setBadge("soku", sTodayReads>0);
 
   // --- Kaiwa (auto) ---
-  const kToday = kSet.has(T);
+  const kToday = kaiwaOn(T, kSet);
   const st = state.kaiwa&&state.kaiwa.stats;
   const mins = st? Math.round((st.spokenSec||0)/60) : 0;
   const said = st? (st.totalMsgs||0) : 0;
