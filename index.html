@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#e8590c">
+<title>する — today</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<script>try{var _t=localStorage.getItem("suru_theme");if(_t)document.documentElement.setAttribute("data-theme",_t);}catch(e){}</script>
+<style>
+:root{
+  --bg:#fbf7f4; --surface:#ffffff; --surface-2:#f5efe9; --text:#20140c; --muted:#7a6a5e;
+  --line:#ece3da; --accent:#e8590c; --accent-weak:#fde7d6; --done:#2fa84f; --done-weak:#e4f5e9;
+  --gold:#e0a500; --shadow:0 1px 3px rgba(60,40,20,.06),0 8px 26px rgba(60,40,20,.06);
+}
+:root[data-theme="dark"]{
+  --bg:#17120e; --surface:#211a15; --surface-2:#2b2219; --text:#f4ece4; --muted:#a99b8d;
+  --line:#332a22; --accent:#ff8a4c; --accent-weak:#3a2415; --done:#4ecb6e; --done-weak:#1e2c20;
+  --gold:#f0c04a; --shadow:0 1px 3px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);overflow-x:hidden;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans JP",sans-serif;
+  line-height:1.5;padding:0 16px 40px;max-width:720px;margin:0 auto;}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:18px 2px 10px;}
+.brand{display:flex;align-items:baseline;gap:10px}
+.logo{font-size:2rem;font-weight:800;letter-spacing:.02em;color:var(--accent)}
+.tag{font-size:.9rem;color:var(--muted)}
+.icon-btn{border:1px solid var(--line);background:var(--surface);color:var(--text);
+  width:38px;height:38px;border-radius:11px;font-size:1.05rem;cursor:pointer}
+.icon-btn:active{transform:scale(.96)}
+
+/* hero */
+.hero{background:var(--surface);border:1px solid var(--line);border-radius:20px;
+  box-shadow:var(--shadow);padding:20px 18px 18px;text-align:center;margin-top:4px}
+.streak{display:flex;align-items:center;justify-content:center;gap:6px;font-weight:800;
+  font-size:3.4rem;line-height:1}
+.streak .fire{font-size:2.6rem;filter:saturate(1.1)}
+.streak.dim{opacity:.4}
+.streak-lbl{color:var(--muted);font-size:.9rem;margin-top:2px;letter-spacing:.04em;text-transform:uppercase}
+.week{display:flex;gap:8px;justify-content:center;margin:16px 0 4px}
+.dot{width:15px;height:15px;border-radius:50%;background:var(--surface-2);border:1.5px solid var(--line)}
+.dot.on{background:var(--done);border-color:var(--done)}
+.dot.today{box-shadow:0 0 0 3px var(--accent-weak);border-color:var(--accent)}
+.min{margin-top:12px;font-size:.95rem;font-weight:600}
+.min .chip{display:inline-flex;align-items:center;gap:5px;background:var(--surface-2);
+  border:1px solid var(--line);border-radius:999px;padding:4px 11px;margin:3px 3px 0;font-weight:600;font-size:.85rem}
+.min .chip.ok{background:var(--done-weak);border-color:var(--done);color:var(--done)}
+.min .met{color:var(--done)}
+
+/* suggestion */
+.suggest{margin:16px 0 6px;background:var(--accent-weak);border:1px solid var(--accent);
+  border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.suggest .lbl{font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.suggest .txt{font-weight:700;font-size:1.02rem;margin-top:1px}
+.suggest.done{background:var(--done-weak);border-color:var(--done)}
+.suggest.done .lbl{color:var(--done)}
+.suggest a.go{margin-left:auto;flex:none;background:var(--accent);color:#fff;text-decoration:none;
+  border-radius:999px;padding:9px 16px;font-weight:700;font-size:.9rem;white-space:nowrap}
+.suggest.done .ico{margin-left:auto;font-size:1.6rem}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:1fr;gap:12px;margin-top:14px}
+@media(min-width:560px){.tiles{grid-template-columns:1fr 1fr}}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:18px;
+  box-shadow:var(--shadow);padding:15px 15px 14px;display:flex;flex-direction:column;gap:10px;position:relative}
+.tile.on{border-color:color-mix(in srgb,var(--done) 45%,var(--line))}
+.thead{display:flex;align-items:center;gap:11px}
+.ti{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;
+  font-size:1.25rem;font-weight:800;background:var(--accent-weak);color:var(--accent)}
+.tile[data-app="kaiwa"] .ti{background:#e9e6fb;color:#6750a4}
+.tile[data-app="kanji"] .ti{background:#dcecff;color:#2f6fd6}
+.tile[data-app="anki"] .ti{background:var(--surface-2);color:var(--text)}
+.tile[data-app="tutor"] .ti{background:#e6f6ef;color:#0f9d6b}
+:root[data-theme="dark"] .tile[data-app="kaiwa"] .ti{background:#2b2544;color:#c7b8ff}
+:root[data-theme="dark"] .tile[data-app="kanji"] .ti{background:#16283f;color:#8bb8ff}
+:root[data-theme="dark"] .tile[data-app="tutor"] .ti{background:#16302447;color:#5fd0a0}
+.tn{font-weight:700;font-size:1rem}
+.ts{font-size:.78rem;color:var(--muted)}
+.badge{margin-left:auto;flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;
+  font-size:.9rem;background:var(--surface-2);color:var(--muted);border:1px solid var(--line)}
+.badge.on{background:var(--done);color:#fff;border-color:var(--done)}
+.tstat{font-size:.9rem;color:var(--muted);min-height:1.2em}
+.tstat b{color:var(--text);font-weight:700}
+.tstat .big{font-size:1.15rem;color:var(--accent);font-weight:800}
+.trow{display:flex;gap:8px;margin-top:auto}
+.mark{flex:1;border:1px solid var(--done);background:transparent;color:var(--done);
+  border-radius:11px;padding:10px;font-weight:700;font-size:.9rem;cursor:pointer}
+.mark.done{background:var(--done);color:#fff}
+.mark:active{transform:scale(.98)}
+.open{flex:none;border:1px solid var(--line);background:var(--surface-2);color:var(--text);
+  text-decoration:none;border-radius:11px;padding:10px 14px;font-weight:700;font-size:.9rem;text-align:center}
+.tile[data-auto] .open{flex:1}
+
+/* sync */
+.sync{margin-top:22px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:15px}
+.sync h3{margin:0 0 4px;font-size:.95rem}
+.sync p{margin:0 0 10px;font-size:.82rem;color:var(--muted)}
+.syncrow{display:flex;gap:8px}
+.sync input{flex:1;min-width:0;border:1px solid var(--line);background:var(--bg);color:var(--text);
+  border-radius:10px;padding:10px 12px;font-size:.95rem}
+.sync button{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:10px;
+  padding:10px 15px;font-weight:700;cursor:pointer;font-size:.9rem;white-space:nowrap}
+.cloudstatus{margin-top:9px;font-size:.82rem;color:var(--muted)}
+.cloudstatus.on{color:var(--done)} .cloudstatus.err{color:#d9534f}
+footer{margin-top:26px;text-align:center;color:var(--muted);font-size:.75rem}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand"><span class="logo">する</span><span class="tag">今日、やる。 Do it today.</span></div>
+  <button id="themeBtn" class="icon-btn" title="Light / dark">☾</button>
+</header>
+
+<section class="hero">
+  <div class="streak" id="streak"><span class="fire">🔥</span><span id="streakNum">0</span></div>
+  <div class="streak-lbl">day streak</div>
+  <div class="week" id="week"></div>
+  <div class="min" id="minStatus"></div>
+</section>
+
+<section class="suggest" id="suggest">
+  <div>
+    <div class="lbl">Your next 10 minutes</div>
+    <div class="txt" id="sugTxt">Connect your sync key below to begin.</div>
+  </div>
+</section>
+
+<main class="tiles" id="tiles">
+  <article class="tile" data-app="soku" data-auto>
+    <div class="thead"><span class="ti">速</span><div><div class="tn">速読 Sokudoku</div><div class="ts">Reading speed</div></div><span class="badge" id="b-soku"></span></div>
+    <div class="tstat" id="s-soku">—</div>
+    <div class="trow"><a class="open" href="https://cheungeric02.github.io/sokudoku/" target="_blank" rel="noopener">Open ↗</a></div>
+  </article>
+
+  <article class="tile" data-app="kaiwa" data-auto>
+    <div class="thead"><span class="ti">会</span><div><div class="tn">会話 Kaiwa</div><div class="ts">Speaking practice</div></div><span class="badge" id="b-kaiwa"></span></div>
+    <div class="tstat" id="s-kaiwa">—</div>
+    <div class="trow"><a class="open" href="https://cheungeric02.github.io/kaiwa/" target="_blank" rel="noopener">Open ↗</a></div>
+  </article>
+
+  <article class="tile" data-app="kanji">
+    <div class="thead"><span class="ti">漢</span><div><div class="tn">Core 2000 Kanji</div><div class="ts">Reading trees</div></div><span class="badge" id="b-kanji"></span></div>
+    <div class="tstat" id="s-kanji">—</div>
+    <div class="trow">
+      <button class="mark" data-kind="kanji">Mark done today</button>
+      <a class="open" href="https://cheungeric02.github.io/core2000-kanji-app/" target="_blank" rel="noopener">Open ↗</a>
+    </div>
+  </article>
+
+  <article class="tile" data-app="anki">
+    <div class="thead"><span class="ti">A</span><div><div class="tn">Anki</div><div class="ts">Core 2k SRS reviews</div></div><span class="badge" id="b-anki"></span></div>
+    <div class="tstat" id="s-anki">Tap when today’s reviews are cleared.</div>
+    <div class="trow">
+      <button class="mark" data-kind="anki">Mark done today</button>
+      <a class="open" href="https://ankiweb.net/decks" target="_blank" rel="noopener">AnkiWeb ↗</a>
+    </div>
+  </article>
+
+  <article class="tile" data-app="tutor">
+    <div class="thead"><span class="ti">師</span><div><div class="tn">Tutor lesson</div><div class="ts">Weekly · 先生</div></div><span class="badge" id="b-tutor"></span></div>
+    <div class="tstat" id="s-tutor">Once a week — doesn’t affect the daily streak.</div>
+    <div class="trow"><button class="mark" data-kind="tutor">Mark this week’s lesson done</button></div>
+  </article>
+</main>
+
+<section class="sync">
+  <h3>Sync</h3>
+  <p>Type the <b>same sync key</b> you use in Sokudoku / Kaiwa / Kanji. する reads your progress from it — it’s a shared secret, not a login.</p>
+  <div class="syncrow">
+    <input id="keyInput" type="text" placeholder="your sync key" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button id="keyBtn">Turn on</button>
+  </div>
+  <div class="cloudstatus" id="cloudStatus">Cloud sync is off.</div>
+</section>
+
+<footer>する · 今日、やる。 · your Japanese hub</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getDatabase, ref, onValue, set, off } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyD9AJbPC9M4gpTyvfIoRcqILq0ZOom1OBs",
+  authDomain: "bon-echo-bd946.firebaseapp.com",
+  databaseURL: "https://bon-echo-bd946-default-rtdb.firebaseio.com",
+  projectId: "bon-echo-bd946",
+  storageBucket: "bon-echo-bd946.firebasestorage.app",
+  messagingSenderId: "196437731482",
+  appId: "1:196437731482:web:3ac836962ce7d89e735723"
+};
+const sanitize = k => k.replace(/[.#$\[\]\/\s]+/g, "_").slice(0, 64);
+const DECK_SIZE = 2007;
+const URLS = {
+  soku:"https://cheungeric02.github.io/sokudoku/",
+  kaiwa:"https://cheungeric02.github.io/kaiwa/",
+  kanji:"https://cheungeric02.github.io/core2000-kanji-app/"
+};
+
+/* ---------- date helpers (day key format matches Kaiwa exactly) ---------- */
+const dayKey = d => { d=d||new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); };
+function weekKey(d){ const x=new Date(d||new Date()); const wd=(x.getDay()+6)%7; x.setDate(x.getDate()-wd); return dayKey(x); }
+const coerce = v => { if(v==null) return null; if(typeof v==="string"){ try{return JSON.parse(v);}catch(e){return null;} } return v; };
+
+/* ---------- state ---------- */
+const state = { soku:[], kaiwa:null, core:null, hub:{checks:{},tutor:[]}, connected:false };
+let db=null, safe="", refs=[];
+
+/* derived day-sets */
+function sokuDaySet(){ const s=new Set(); for(const r of (state.soku||[])){ if(r&&r.t) s.add(dayKey(new Date(r.t))); } return s; }
+function kaiwaDaySet(){ return new Set((state.kaiwa&&state.kaiwa.stats&&state.kaiwa.stats.days)||[]); }
+
+function ankiDone(k){ return !!(state.hub.checks[k]&&state.hub.checks[k].anki); }
+function kanjiDone(k){ return !!(state.hub.checks[k]&&state.hub.checks[k].kanji); }
+function doneDay(k, sSet, kSet){
+  const claude = sSet.has(k) || kSet.has(k) || kanjiDone(k);
+  return ankiDone(k) && claude;   // the minimum: Anki + one Claude app
+}
+function computeStreak(){
+  const sSet=sokuDaySet(), kSet=kaiwaDaySet();
+  let n=0; const d=new Date();
+  if(!doneDay(dayKey(d),sSet,kSet)) d.setDate(d.getDate()-1); // today not done yet is OK
+  while(doneDay(dayKey(d),sSet,kSet)){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+
+/* ---------- render ---------- */
+const $ = id => document.getElementById(id);
+function render(){
+  const T = dayKey();
+  const sSet=sokuDaySet(), kSet=kaiwaDaySet();
+
+  // --- Sokudoku (auto) ---
+  const sArr = (state.soku||[]).filter(r=>r&&typeof r.cpm==="number").slice().sort((a,b)=>a.t-b.t);
+  const sTodayReads = (state.soku||[]).filter(r=>r&&r.t&&dayKey(new Date(r.t))===T).length;
+  const latest = sArr.length? sArr[sArr.length-1].cpm : null;
+  let sokuStat;
+  if(!state.connected){ sokuStat="—"; }
+  else if(sTodayReads>0){ sokuStat=`<span class="big">${sTodayReads}</span> read${sTodayReads>1?"s":""} today${latest?` · latest <b>${latest}</b> CPM`:""}`; }
+  else if(latest){ sokuStat=`No reads yet today · latest <b>${latest}</b> CPM`; }
+  else { sokuStat="No reads logged yet."; }
+  $("s-soku").innerHTML=sokuStat;
+  setBadge("soku", sTodayReads>0);
+
+  // --- Kaiwa (auto) ---
+  const kToday = kSet.has(T);
+  const st = state.kaiwa&&state.kaiwa.stats;
+  const mins = st? Math.round((st.spokenSec||0)/60) : 0;
+  const said = st? (st.totalMsgs||0) : 0;
+  let kaiwaStat;
+  if(!state.connected){ kaiwaStat="—"; }
+  else if(kToday){ kaiwaStat=`Practiced today ✓ · ${mins} min · ${said} said`; }
+  else if(st){ kaiwaStat=`Not yet today · ${mins} min · ${said} said total`; }
+  else { kaiwaStat="No sessions logged yet."; }
+  $("s-kaiwa").innerHTML=kaiwaStat;
+  setBadge("kaiwa", kToday);
+
+  // --- Kanji (manual + progress read-only) ---
+  const kd = kanjiDone(T);
+  let kanjiStat;
+  if(state.core){
+    const prog = Math.max(0,Math.min(100, Math.round(((state.core.progress||0)/DECK_SIZE)*100)));
+    const known = state.core.known? Object.keys(state.core.known).length : 0;
+    kanjiStat=`Deck <b>${prog}%</b> · <b>${known}</b> kanji known`;
+  } else { kanjiStat = state.connected? "No kanji data on this key yet." : "—"; }
+  $("s-kanji").innerHTML=kanjiStat;
+  setBadge("kanji", kd);
+  setMark("kanji", kd);
+
+  // --- Anki (manual) ---
+  const ad = ankiDone(T);
+  setBadge("anki", ad);
+  setMark("anki", ad);
+  $("s-anki").textContent = ad? "Reviews cleared today ✓" : "Tap when today’s reviews are cleared.";
+
+  // --- Tutor (weekly) ---
+  const tw = state.hub.tutor.includes(weekKey());
+  setBadge("tutor", tw);
+  setMark("tutor", tw);
+  $("s-tutor").textContent = tw? "This week’s lesson done ✓" : "Once a week — doesn’t affect the daily streak.";
+
+  // --- streak + week strip ---
+  const streak = computeStreak();
+  $("streakNum").textContent = streak;
+  $("streak").classList.toggle("dim", streak===0);
+  const wk=$("week"); wk.innerHTML="";
+  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=dayKey(d);
+    const dot=document.createElement("div"); dot.className="dot"+(doneDay(k,sSet,kSet)?" on":"")+(i===0?" today":"");
+    dot.title=k; wk.appendChild(dot); }
+
+  // --- minimum status ---
+  const ankiT=ankiDone(T);
+  const claudeT = sTodayReads>0 || kToday || kanjiDone(T);
+  const met = ankiT && claudeT;
+  $("minStatus").innerHTML = met
+    ? `<span class="met">✓ Today’s minimum met — streak is safe. 🔥</span>`
+    : `<span class="chip${ankiT?" ok":""}">${ankiT?"✓":"○"} Anki</span><span class="chip${claudeT?" ok":""}">${claudeT?"✓":"○"} 1 app</span>`;
+
+  // --- suggestion ---
+  renderSuggestion(ankiT, claudeT, kToday, sTodayReads);
+}
+
+function setBadge(app, on){ const b=$("b-"+app); if(!b)return; b.textContent=on?"✓":""; b.classList.toggle("on",on);
+  const tile=document.querySelector('.tile[data-app="'+app+'"]'); if(tile) tile.classList.toggle("on",on); }
+function setMark(kind, done){ const m=document.querySelector('.mark[data-kind="'+kind+'"]'); if(!m)return;
+  m.classList.toggle("done",done);
+  m.textContent = done ? (kind==="tutor"?"✓ Lesson done":"✓ Done today")
+                       : (kind==="tutor"?"Mark this week’s lesson done":"Mark done today"); }
+
+function renderSuggestion(ankiT, claudeT, kToday, sTodayReads){
+  const el=$("suggest");
+  if(!state.connected){
+    el.classList.remove("done");
+    el.innerHTML=`<div><div class="lbl">Your next 10 minutes</div><div class="txt">Connect your sync key below to begin.</div></div>`;
+    return;
+  }
+  let txt, href=null;
+  if(!ankiT){ txt="Do your Anki reviews"; }
+  else if(!claudeT){
+    if(!kToday){ txt="Speak for 5 minutes in 会話 Kaiwa"; href=URLS.kaiwa; }
+    else { txt="Do one 速読 Sokudoku reading"; href=URLS.soku; }
+  } else { txt=null; }
+  if(txt===null){
+    el.classList.add("done");
+    el.innerHTML=`<div><div class="lbl">Nice work</div><div class="txt">Minimum done — anything else is bonus.</div></div><div class="ico">🎉</div>`;
+  } else {
+    el.classList.remove("done");
+    el.innerHTML=`<div><div class="lbl">Your next 10 minutes</div><div class="txt">${txt}</div></div>`
+      + (href?`<a class="go" href="${href}" target="_blank" rel="noopener">Go →</a>`:``);
+  }
+}
+
+/* ---------- manual check writes ---------- */
+document.querySelectorAll(".mark").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const kind=btn.dataset.kind;
+    if(kind==="tutor"){
+      const wk=weekKey(); const i=state.hub.tutor.indexOf(wk);
+      if(i>=0) state.hub.tutor.splice(i,1); else state.hub.tutor.push(wk);
+    } else {
+      const T=dayKey(); state.hub.checks[T]=state.hub.checks[T]||{};
+      state.hub.checks[T][kind]=!state.hub.checks[T][kind];
+    }
+    pushHub(); render();
+  });
+});
+
+/* ---------- Firebase ---------- */
+function status(msg, st){ const el=$("cloudStatus"); el.textContent=msg; el.classList.remove("on","err"); if(st) el.classList.add(st);
+  $("keyBtn").textContent = (st==="on")?"Turn off":"Turn on"; }
+
+function mergeHub(remote){
+  remote = remote || {checks:{},tutor:[]};
+  const out = { checks:Object.assign({}, remote.checks||{}), tutor:Array.from(new Set([...(remote.tutor||[]), ...(state.hub.tutor||[])])) };
+  // union local positive checks so an in-flight tap is never lost to a stale snapshot
+  for(const day in (state.hub.checks||{})){
+    out.checks[day]=Object.assign({}, out.checks[day]||{}, state.hub.checks[day]);
+  }
+  return out;
+}
+function pushHub(){ if(!db||!state.connected) return; set(ref(db,"hub/"+safe+"/log"), JSON.stringify(state.hub))
+  .catch(e=>{ status("Sync error — check the database rules.","err"); console.warn("[suru] hub write",e); }); }
+
+function disconnect(){ refs.forEach(r=>off(r)); refs=[]; state.connected=false;
+  try{localStorage.removeItem("suru_synckey");}catch(e){}
+  status("Cloud sync is off.",""); render(); }
+
+function connect(key){
+  if(!db) return;
+  safe=sanitize(key); if(!safe){ status("Enter a sync key first.","err"); return; }
+  try{localStorage.setItem("suru_synckey", key);}catch(e){}
+  refs.forEach(r=>off(r)); refs=[];
+  state.connected=true; status("Connecting…");
+  const watch=(path,cb)=>{ const r=ref(db,path); refs.push(r);
+    onValue(r, s=>{ status("Cloud sync on · key “"+key+"”","on"); cb(coerce(s.val())); render(); },
+      err=>{ status("Sync error — check the database rules in Firebase.","err"); console.warn("[suru] read",path,err); }); };
+  watch("sokudoku/"+safe+"/blob", v=>{ state.soku = Array.isArray(v)? v : []; });
+  watch("kaiwa/"+safe+"/blob",    v=>{ state.kaiwa = v||null; });
+  watch("core2000/"+safe+"/state",v=>{ state.core = v||null; });
+  watch("hub/"+safe+"/log",       v=>{ state.hub = mergeHub(v); });
+}
+
+/* ---------- init ---------- */
+try{
+  const app=initializeApp(firebaseConfig);
+  db=getDatabase(app);
+}catch(e){ console.error("[suru] firebase init failed",e); status("Cloud sync couldn’t start here.","err"); }
+
+$("keyBtn").addEventListener("click", ()=>{
+  if(state.connected){ disconnect(); return; }
+  const v=$("keyInput").value.trim(); if(!v){ status("Enter a sync key first.","err"); return; }
+  connect(v);
+});
+$("keyInput").addEventListener("keydown", e=>{ if(e.key==="Enter") $("keyBtn").click(); });
+
+// prefill from any of the apps (same origin → shared localStorage)
+let saved="";
+for(const k of ["suru_synckey","jp_cpm_synckey","c2k_synckey","kaiwa_synckey"]){
+  try{ const v=localStorage.getItem(k); if(v){ saved=v; break; } }catch(e){}
+}
+if(saved){ $("keyInput").value=saved; if(db) connect(saved); }
+else { render(); }
+
+/* ---------- theme ---------- */
+$("themeBtn").addEventListener("click", ()=>{
+  const cur=document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light";
+  const next=cur==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",next);
+  document.querySelector('meta[name=theme-color]').setAttribute("content", next==="dark"?"#17120e":"#e8590c");
+  try{localStorage.setItem("suru_theme",next);}catch(e){}
+  $("themeBtn").textContent = next==="dark"?"☀":"☾";
+});
+$("themeBtn").textContent = (document.documentElement.getAttribute("data-theme")==="dark")?"☀":"☾";
+
+/* ---------- service worker ---------- */
+if("serviceWorker" in navigator && location.protocol==="https:"){
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
+}
+</script>
+</body>
+</html>
