@@ -58,7 +58,11 @@ body{margin:0;background:var(--surface);color:var(--on-surface);overflow-x:hidde
 .btn-filled{background:var(--primary);color:var(--on-primary)}
 .btn-tonal{background:var(--secondary-container);color:var(--on-secondary-container)}
 
-header.top{display:flex;align-items:center;justify-content:space-between;padding:20px 2px 12px;}
+header.top{position:sticky;top:0;z-index:50;background:var(--surface);
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 16px 12px;margin:0 -16px;
+  border-bottom:1px solid transparent;transition:border-color .2s var(--e-standard),box-shadow .2s var(--e-standard)}
+header.top.scrolled{border-bottom-color:var(--outline-variant);box-shadow:var(--elev1)}
 .brand{display:flex;align-items:baseline;gap:11px}
 .logo{font-size:2.1rem;font-weight:800;letter-spacing:.01em;color:var(--primary)}
 .tag{font-size:.9rem;color:var(--on-surface-variant)}
@@ -138,16 +142,21 @@ header.top{display:flex;align-items:center;justify-content:space-between;padding
   text-decoration:none;padding:11px 18px;text-align:center;display:inline-flex;align-items:center;justify-content:center}
 .tile[data-auto] .open{flex:1}
 
-/* settings (collapsible) */
-.settings{margin-top:24px;background:var(--sc-low);border-radius:28px;overflow:hidden}
-.settings>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:12px;
-  padding:18px 20px;font-weight:700;font-size:1rem;position:relative}
-.settings>summary::-webkit-details-marker{display:none}
-.settings>summary .chev{margin-left:auto;transition:transform .25s var(--e-standard);color:var(--on-surface-variant)}
-.settings[open]>summary .chev{transform:rotate(180deg)}
-.settings>summary .gear{font-size:1.15rem}
-.settings-body{padding:0 20px 6px}
+/* settings — full-screen modal sheet (M3) */
+.sheet{border:none;padding:0;background:var(--surface);color:var(--on-surface);
+  width:100%;max-width:480px;border-radius:28px;box-shadow:var(--elev2);
+  max-height:calc(100dvh - 32px);overflow:hidden}
+.sheet::backdrop{background:rgba(20,10,4,.42);backdrop-filter:blur(2px)}
+.sheet[open]{display:flex;flex-direction:column}
+.sheet-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;gap:12px;
+  padding:18px 16px 14px 22px;background:var(--surface);border-bottom:1px solid var(--outline-variant)}
+.sheet-head h2{margin:0;font-size:1.25rem;font-weight:800;flex:1}
+.sheet-body{padding:16px 16px 20px;overflow-y:auto}
+@media(max-width:560px){
+  .sheet{width:100%;max-width:none;height:100dvh;max-height:100dvh;border-radius:0;margin:0}
+}
 .card{background:var(--sc);border-radius:20px;padding:16px 16px 15px;margin-bottom:14px}
+.card:last-child{margin-bottom:0}
 .card h3{margin:0 0 5px;font-size:.98rem}
 .card p{margin:0 0 12px;font-size:.82rem;color:var(--on-surface-variant);line-height:1.5}
 .syncrow{display:flex;gap:10px}
@@ -231,9 +240,12 @@ footer{margin-top:28px;text-align:center;color:var(--on-surface-variant);font-si
   </article>
 </main>
 
-<details class="settings" id="settings">
-  <summary><span class="gear">⚙</span> Settings <span class="chev">⌄</span></summary>
-  <div class="settings-body">
+<dialog class="sheet" id="settingsDlg" aria-label="Settings">
+  <div class="sheet-head">
+    <h2>Settings</h2>
+    <button id="settingsClose" class="icon-btn" title="Close" aria-label="Close settings">✕</button>
+  </div>
+  <div class="sheet-body">
     <div class="card">
       <h3>Sync</h3>
       <p>Type the <b>same sync key</b> you use in Sokudoku / Kaiwa / Kanji. する reads your progress from it — it’s a shared secret, not a login.</p>
@@ -256,7 +268,7 @@ footer{margin-top:28px;text-align:center;color:var(--on-surface-variant);font-si
       <div class="hint-note">Time syncs across your devices. A guaranteed nightly reminder even when the app is fully closed needs a one-time server setup — ask me if you want it.</div>
     </div>
   </div>
-</details>
+</dialog>
 
 <footer>する · 今日、やる。 · the day resets at 3:00 AM</footer>
 
@@ -669,12 +681,20 @@ for(const k of ["suru_synckey","jp_cpm_synckey","c2k_synckey","kaiwa_synckey"]){
 if(saved){ $("keyInput").value=saved; if(db) connect(saved); }
 else { render(); }
 
-/* ---------- settings drawer ---------- */
-$("settingsBtn").addEventListener("click", ()=>{
-  const d=$("settings"); d.open=!d.open;
-  if(d.open) requestAnimationFrame(()=>d.scrollIntoView({behavior:"smooth", block:"start"}));
-});
-if(!saved) $("settings").open = true;   // first run with no key → show settings so they can connect
+/* ---------- settings modal ---------- */
+const settingsDlg=$("settingsDlg");
+function openSettings(){ if(!settingsDlg.open){ try{ settingsDlg.showModal(); }catch(e){ settingsDlg.setAttribute("open",""); } } }
+function closeSettings(){ if(settingsDlg.open) settingsDlg.close(); }
+$("settingsBtn").addEventListener("click", openSettings);
+$("settingsClose").addEventListener("click", closeSettings);
+// click on the backdrop (outside the sheet content) closes it
+settingsDlg.addEventListener("click", e=>{ if(e.target===settingsDlg) closeSettings(); });
+if(!saved) openSettings();   // first run with no key → surface settings so they can connect
+
+/* ---------- sticky header shadow on scroll ---------- */
+const topBar=document.querySelector("header.top");
+const onScroll=()=>{ topBar.classList.toggle("scrolled", window.scrollY>4); };
+window.addEventListener("scroll", onScroll, {passive:true}); onScroll();
 
 /* ---------- theme ---------- */
 $("themeBtn").addEventListener("click", ()=>{
