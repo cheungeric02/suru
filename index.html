@@ -696,6 +696,32 @@ const topBar=document.querySelector("header.top");
 const onScroll=()=>{ topBar.classList.toggle("scrolled", window.scrollY>4); };
 window.addEventListener("scroll", onScroll, {passive:true}); onScroll();
 
+/* ---------- open the installed target app, not an in-app browser ----------
+   When する runs as an installed PWA (standalone) on Android, a normal
+   target="_blank" link opens an in-app Custom Tab — it never hands off to the
+   other installed app. An intent:// VIEW navigation lets Android route the URL
+   to the installed target (its WebAPK, if "Open supported links" is on), with an
+   automatic web fallback when it isn't installed. No-op elsewhere (browser tab,
+   desktop, iOS) so the default new-tab behaviour is kept there. */
+function androidStandalone(){
+  return /Android/i.test(navigator.userAgent) &&
+    (matchMedia("(display-mode: standalone)").matches ||
+     matchMedia("(display-mode: fullscreen)").matches ||
+     matchMedia("(display-mode: minimal-ui)").matches);
+}
+function toIntentUrl(url){
+  const u=new URL(url, location.href);
+  return "intent://"+u.host+u.pathname+u.search
+    +"#Intent;scheme=https;action=android.intent.action.VIEW"
+    +";S.browser_fallback_url="+encodeURIComponent(u.href)+";end";
+}
+document.addEventListener("click", e=>{
+  const a=e.target.closest ? e.target.closest("a.open, a.go") : null;
+  if(!a || !a.href || !androidStandalone()) return;   // else: let target="_blank" do its thing
+  e.preventDefault();
+  window.location.href=toIntentUrl(a.href);
+});
+
 /* ---------- theme ---------- */
 $("themeBtn").addEventListener("click", ()=>{
   const cur=document.documentElement.getAttribute("data-theme")==="dark"?"dark":"light";
