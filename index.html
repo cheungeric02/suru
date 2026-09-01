@@ -23,6 +23,7 @@
   --outline:#88756a; --outline-variant:#e0cec2;
   --success:#2e7d46; --error:#ba1a1a;
   --kaiwa-c:#e7defb; --on-kaiwa-c:#31215a; --kanji-c:#d7e8ff; --on-kanji-c:#0f3f74; --tutor-c:#c6f0d6; --on-tutor-c:#08351f;
+  --bunpou-c:#ffdad6; --on-bunpou-c:#7a271f;
   --elev1:0 1px 2px rgba(80,40,10,.08);
   --elev2:0 2px 8px rgba(80,40,10,.10),0 1px 2px rgba(80,40,10,.06);
   --e-standard:cubic-bezier(.2,0,0,1);
@@ -39,6 +40,7 @@
   --outline:#a18d81; --outline-variant:#55453b;
   --success:#7dd499; --error:#ffb4ab;
   --kaiwa-c:#332a52; --on-kaiwa-c:#d6c8ff; --kanji-c:#16304f; --on-kanji-c:#adcbff; --tutor-c:#1c3b28; --on-tutor-c:#b6ecc6;
+  --bunpou-c:#5c231d; --on-bunpou-c:#ffdad6;
   --elev1:0 1px 2px rgba(0,0,0,.5);
   --elev2:0 3px 10px rgba(0,0,0,.5);
 }
@@ -118,6 +120,7 @@ header.top.scrolled{border-bottom-color:var(--outline-variant);box-shadow:var(--
 .ti{width:46px;height:46px;flex:none;border-radius:16px;display:grid;place-items:center;
   font-size:1.3rem;font-weight:800;background:var(--primary-container);color:var(--on-primary-container)}
 .tile[data-app="kaiwa"] .ti{background:var(--kaiwa-c);color:var(--on-kaiwa-c)}
+.tile[data-app="bunpou"] .ti{background:var(--bunpou-c);color:var(--on-bunpou-c)}
 .tile[data-app="kanji"] .ti{background:var(--kanji-c);color:var(--on-kanji-c)}
 .tile[data-app="anki"] .ti{background:var(--sc-highest);color:var(--on-surface)}
 .tile[data-app="tutor"] .ti{background:var(--tutor-c);color:var(--on-tutor-c)}
@@ -216,6 +219,12 @@ footer{margin-top:28px;text-align:center;color:var(--on-surface-variant);font-si
     <div class="trow"><a class="open btn" href="https://cheungeric02.github.io/kaiwa/" target="_blank" rel="noopener">Open ↗</a></div>
   </article>
 
+  <article class="tile" data-app="bunpou" data-auto>
+    <div class="thead"><span class="ti">妖</span><div><div class="tn">妖怪文法 Bunpō</div><div class="ts">JLPT grammar battles · required</div></div><span class="badge" id="b-bunpou"></span></div>
+    <div class="tstat" id="s-bunpou">—</div>
+    <div class="trow"><a class="open btn" href="https://cheungeric02.github.io/bunpou-monsters/" target="_blank" rel="noopener">Open ↗</a></div>
+  </article>
+
   <article class="tile" data-app="kanji">
     <div class="thead"><span class="ti">漢</span><div><div class="tn">Core 2000 Kanji</div><div class="ts">Reading trees</div></div><span class="badge" id="b-kanji"></span></div>
     <div class="tstat" id="s-kanji">—</div>
@@ -248,7 +257,7 @@ footer{margin-top:28px;text-align:center;color:var(--on-surface-variant);font-si
   <div class="sheet-body">
     <div class="card">
       <h3>Sync</h3>
-      <p>Type the <b>same sync key</b> you use in Sokudoku / Kaiwa / Kanji. する reads your progress from it — it’s a shared secret, not a login.</p>
+      <p>Type the <b>same sync key</b> you use in Sokudoku / Kaiwa / 妖怪文法 / Kanji. する reads your progress from it — it’s a shared secret, not a login.</p>
       <div class="syncrow">
         <input id="keyInput" type="text" placeholder="your sync key" autocomplete="off" autocapitalize="off" spellcheck="false">
         <button id="keyBtn" class="btn btn-filled">Turn on</button>
@@ -290,7 +299,8 @@ const DECK_SIZE = 2007;
 const URLS = {
   soku:"https://cheungeric02.github.io/sokudoku/",
   kaiwa:"https://cheungeric02.github.io/kaiwa/",
-  kanji:"https://cheungeric02.github.io/core2000-kanji-app/"
+  kanji:"https://cheungeric02.github.io/core2000-kanji-app/",
+  bunpou:"https://cheungeric02.github.io/bunpou-monsters/"
 };
 
 /* ---------- date helpers ----------
@@ -307,7 +317,7 @@ const coerce = v => { if(v==null) return null; if(typeof v==="string"){ try{retu
 const fromKey = k => { const [y,m,dd]=k.split("-").map(Number); return new Date(y,(m||1)-1,dd||1); }; // suru-day string → Date
 
 /* ---------- state ---------- */
-const state = { soku:[], kaiwa:null, core:null, hub:{checks:{},tutor:[],record:0,notify:{enabled:false,time:"23:00"}}, connected:false };
+const state = { soku:[], kaiwa:null, core:null, bunpou:null, hub:{checks:{},tutor:[],record:0,bunpouSince:null,notify:{enabled:false,time:"23:00"}}, connected:false };
 let db=null, safe="", refs=[];
 
 /* derived day-sets */
@@ -316,6 +326,49 @@ function kaiwaDaySet(){ return new Set((state.kaiwa&&state.kaiwa.stats&&state.ka
 
 function ankiDone(k){ return !!(state.hub.checks[k]&&state.hub.checks[k].anki); }
 function kanjiDone(k){ return !!(state.hub.checks[k]&&state.hub.checks[k].kanji); }
+function bunpouDone(k){ return !!(state.hub.checks[k]&&state.hub.checks[k].bunpou); }
+
+/* Bunpou syncs only its LAST play day (S.lastPlay = a UTC day-number of the local
+   calendar date). We can't reconstruct its full history, so する durably records each
+   Bunpou-day it sees into the hub log (like the manual checks). bunpouCalDay() reads that
+   last-play back as a YYYY-MM-DD calendar string (UTC components, matching how Bunpou
+   built it); stampBunpou() writes it to hub.checks so streak history accumulates. */
+const bunpouCalDay = () => {
+  const lp = state.bunpou && state.bunpou.lastPlay;
+  if(!lp) return null;
+  const d = new Date(lp*864e5);
+  return d.getUTCFullYear()+"-"+String(d.getUTCMonth()+1).padStart(2,"0")+"-"+String(d.getUTCDate()).padStart(2,"0");
+};
+/* which suru-day the last Bunpou play credits to (date-only, so same grace as Kaiwa) */
+function bunpouSuruDay(){
+  const b = bunpouCalDay(); if(!b) return null;
+  const now = new Date();
+  if(now.getHours()<RESET_HOUR && b===fmt(now)) return dayKey(now); // pre-3 AM → still-open day
+  return b;
+}
+/* live "played Bunpou on suru-day k?" from the last-play signal (covers today pre-stamp) */
+function bunpouOn(k){
+  const b = bunpouCalDay(); if(!b) return false;
+  if(b===k) return true;
+  const now = new Date();
+  if(now.getHours()<RESET_HOUR && k===dayKey(now) && b===fmt(now)) return true;
+  return false;
+}
+/* record the last-play day into the hub log; also stamp the day Bunpou became required.
+   Only credits the single most-recent play (never fills skipped days) → safe direction. */
+function stampBunpou(){
+  const bday = bunpouSuruDay(); if(!bday) return false;
+  state.hub.checks[bday] = state.hub.checks[bday] || {};
+  let changed = false;
+  if(!state.hub.checks[bday].bunpou){ state.hub.checks[bday].bunpou = true; changed = true; }
+  if(!state.hub.bunpouSince){ state.hub.bunpouSince = bday; changed = true; }
+  return changed;
+}
+/* Bunpou is required only from the day it first became part of the routine onward, so
+   days before that keep the old Anki+1-app rule and the existing streak isn't voided.
+   Today always counts as required (threshold falls back to today when never played yet). */
+function bunpouReq(k){ return k >= (state.hub.bunpouSince || dayKey()); }
+function bunpouOk(k){ return !bunpouReq(k) || bunpouDone(k) || bunpouOn(k); }
 /* Kaiwa only stores calendar dates (no times), so it can't be 3 AM-shifted like the rest.
    Grace: if it's currently before 3 AM, a session stamped with today's calendar date
    belongs to the current (still-open) suru-day. */
@@ -327,7 +380,8 @@ function kaiwaOn(k, kSet){
 }
 function doneDay(k, sSet, kSet){
   const claude = sSet.has(k) || kaiwaOn(k, kSet) || kanjiDone(k);
-  return ankiDone(k) && claude;   // the minimum: Anki + one Claude app
+  // the minimum: Anki + Bunpou + one more of Sokudoku/Kaiwa/Kanji
+  return ankiDone(k) && bunpouOk(k) && claude;
 }
 function computeStreak(){
   const sSet=sokuDaySet(), kSet=kaiwaDaySet();
@@ -363,6 +417,9 @@ function render(){
   const T = dayKey();
   const sSet=sokuDaySet(), kSet=kaiwaDaySet();
 
+  // Durably record the Bunpou play-day into the hub log (it only syncs its last play).
+  if(stampBunpou() && state.connected) pushHub();
+
   // --- Sokudoku (auto) ---
   const sArr = (state.soku||[]).filter(r=>r&&typeof r.cpm==="number").slice().sort((a,b)=>a.t-b.t);
   const sTodayReads = (state.soku||[]).filter(r=>r&&r.t&&dayKey(new Date(r.t))===T).length;
@@ -387,6 +444,19 @@ function render(){
   else { kaiwaStat="No sessions logged yet."; }
   $("s-kaiwa").innerHTML=kaiwaStat;
   setBadge("kaiwa", kToday);
+
+  // --- Bunpou (auto) ---
+  const bToday = bunpouOk(T) && bunpouReq(T); // played today (required era)
+  let bunpouStat;
+  if(!state.connected){ bunpouStat="—"; }
+  else if(state.bunpou){
+    const bstreak = state.bunpou.streak||0;
+    const rec = state.bunpou.srs? Object.values(state.bunpou.srs).filter(m=>m&&m.seen).length : 0;
+    bunpouStat = (bToday?"Battled today ✓":"Not yet today")
+      + (bstreak?` · 🔥 ${bstreak}`:"") + (rec?` · ${rec}/110 recorded`:"");
+  } else { bunpouStat = "No battles logged yet."; }
+  $("s-bunpou").innerHTML=bunpouStat;
+  setBadge("bunpou", bToday);
 
   // --- Kanji (manual + progress read-only) ---
   const kd = kanjiDone(T);
@@ -425,20 +495,23 @@ function render(){
     const dot=document.createElement("div"); dot.className="dot"+(doneDay(k,sSet,kSet)?" on":"")+(i===0?" today":"");
     dot.title=k; wk.appendChild(dot); }
 
-  // --- minimum status ---
+  // --- minimum status ---  (Anki + Bunpou + one more of Sokudoku/Kaiwa/Kanji)
   const ankiT=ankiDone(T);
+  const bunpouT=bunpouOk(T);
   const claudeT = sTodayReads>0 || kToday || kanjiDone(T);
-  const met = ankiT && claudeT;
+  const met = ankiT && bunpouT && claudeT;
   $("minStatus").innerHTML = met
     ? `<span class="met">✓ Today’s minimum met — streak is safe. 🔥</span>`
-    : `<span class="chip${ankiT?" ok":""}">${ankiT?"✓":"○"} Anki</span><span class="chip${claudeT?" ok":""}">${claudeT?"✓":"○"} 1 app</span>`;
+    : `<span class="chip${ankiT?" ok":""}">${ankiT?"✓":"○"} Anki</span>`
+      + `<span class="chip${bunpouT?" ok":""}">${bunpouT?"✓":"○"} 妖怪文法</span>`
+      + `<span class="chip${claudeT?" ok":""}">${claudeT?"✓":"○"} 1 more</span>`;
 
   // --- countdown + reminder reschedule ---
   renderCountdown();
   if(_lastMet!==met){ _lastMet=met; scheduleReminders(); }
 
   // --- suggestion ---
-  renderSuggestion(ankiT, claudeT, kToday, sTodayReads);
+  renderSuggestion(ankiT, bunpouT, claudeT, kToday, sTodayReads);
 }
 
 function setBadge(app, on){ const b=$("b-"+app); if(!b)return; b.textContent=on?"✓":""; b.classList.toggle("on",on);
@@ -448,7 +521,7 @@ function setMark(kind, done){ const m=document.querySelector('.mark[data-kind="'
   m.textContent = done ? (kind==="tutor"?"✓ Lesson done":"✓ Done today")
                        : (kind==="tutor"?"Mark this week’s lesson done":"Mark done today"); }
 
-function renderSuggestion(ankiT, claudeT, kToday, sTodayReads){
+function renderSuggestion(ankiT, bunpouT, claudeT, kToday, sTodayReads){
   const el=$("suggest");
   if(!state.connected){
     el.classList.remove("done");
@@ -457,6 +530,7 @@ function renderSuggestion(ankiT, claudeT, kToday, sTodayReads){
   }
   let txt, href=null;
   if(!ankiT){ txt="Do your Anki reviews"; }
+  else if(!bunpouT){ txt="Battle a grammar yōkai in 妖怪文法 Bunpō"; href=URLS.bunpou; }
   else if(!claudeT){
     if(!kToday){ txt="Speak for 5 minutes in 会話 Kaiwa"; href=URLS.kaiwa; }
     else { txt="Do one 速読 Sokudoku reading"; href=URLS.soku; }
@@ -498,6 +572,9 @@ function mergeHub(remote){
     record:Math.max(remote.record||0, state.hub.record||0),                 // never decreases
     notify:Object.assign({enabled:false, time:"23:00"}, remote.notify||{})  // remote wins across devices
   };
+  // Bunpou became-required day: earliest wins (so grandfathering is consistent across devices)
+  const since=[remote.bunpouSince, state.hub.bunpouSince].filter(Boolean).sort();
+  if(since.length) out.bunpouSince=since[0];
   // union local positive checks so an in-flight tap is never lost to a stale snapshot
   for(const day in (state.hub.checks||{})){
     out.checks[day]=Object.assign({}, out.checks[day]||{}, state.hub.checks[day]);
@@ -532,13 +609,14 @@ function connect(key){
   watch("sokudoku/"+safe+"/blob", v=>{ state.soku = Array.isArray(v)? v : []; });
   watch("kaiwa/"+safe+"/blob",    v=>{ state.kaiwa = v||null; });
   watch("core2000/"+safe+"/state",v=>{ state.core = v||null; });
+  watch("bunpou/"+safe+"/state",  v=>{ state.bunpou = v||null; });
   watch("hub/"+safe+"/log",       v=>{ state.hub = mergeHub(v); applyRemoteNotify(state.hub.notify); });
 }
 
 /* ---------- countdown ---------- */
 function isMetToday(){
   const T=dayKey(); const sSet=sokuDaySet(), kSet=kaiwaDaySet();
-  return ankiDone(T) && (sSet.has(T) || kaiwaOn(T,kSet) || kanjiDone(T));
+  return ankiDone(T) && bunpouOk(T) && (sSet.has(T) || kaiwaOn(T,kSet) || kanjiDone(T));
 }
 function nextResetTs(){                       // ms timestamp of the next 3 AM rollover
   const now=new Date();
