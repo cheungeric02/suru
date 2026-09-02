@@ -317,7 +317,7 @@ const coerce = v => { if(v==null) return null; if(typeof v==="string"){ try{retu
 const fromKey = k => { const [y,m,dd]=k.split("-").map(Number); return new Date(y,(m||1)-1,dd||1); }; // suru-day string → Date
 
 /* ---------- state ---------- */
-const state = { soku:[], kaiwa:null, core:null, bunpou:null, hub:{checks:{},tutor:[],record:0,bunpouSince:null,notify:{enabled:false,time:"23:00"}}, connected:false };
+const state = { soku:[], kaiwa:null, core:null, bunpou:null, hub:{checks:{},tutor:[],record:0,bunpouSince:null,sinceFix:0,notify:{enabled:false,time:"23:00"}}, connected:false };
 let db=null, safe="", refs=[];
 
 /* derived day-sets */
@@ -361,7 +361,9 @@ function stampBunpou(){
   state.hub.checks[bday] = state.hub.checks[bday] || {};
   let changed = false;
   if(!state.hub.checks[bday].bunpou){ state.hub.checks[bday].bunpou = true; changed = true; }
-  if(!state.hub.bunpouSince){ state.hub.bunpouSince = bday; changed = true; }
+  // Grandfather threshold = the day Bunpou JOINED the routine (today), not the last-play day.
+  // Keying it to a past play retroactively required grammar on already-complete days → voided streaks.
+  if(!state.hub.bunpouSince){ state.hub.bunpouSince = dayKey(new Date()); changed = true; }
   return changed;
 }
 /* Bunpou is required only from the day it first became part of the routine onward, so
@@ -570,16 +572,27 @@ function mergeHub(remote){
     checks:Object.assign({}, remote.checks||{}),
     tutor:Array.from(new Set([...(remote.tutor||[]), ...(state.hub.tutor||[])])),
     record:Math.max(remote.record||0, state.hub.record||0),                 // never decreases
-    notify:Object.assign({enabled:false, time:"23:00"}, remote.notify||{})  // remote wins across devices
+    notify:Object.assign({enabled:false, time:"23:00"}, remote.notify||{}), // remote wins across devices
+    sinceFix:Math.max(remote.sinceFix||0, state.hub.sinceFix||0)            // one-time grandfather repair marker
   };
-  // Bunpou became-required day: earliest wins (so grandfathering is consistent across devices)
+  // Bunpou became-required day: LATEST wins — a stale/back-dated early date can only ever void a
+  // streak, so keeping the later threshold is the safe direction and lets the repair propagate.
   const since=[remote.bunpouSince, state.hub.bunpouSince].filter(Boolean).sort();
-  if(since.length) out.bunpouSince=since[0];
+  if(since.length) out.bunpouSince=since[since.length-1];
   // union local positive checks so an in-flight tap is never lost to a stale snapshot
   for(const day in (state.hub.checks||{})){
     out.checks[day]=Object.assign({}, out.checks[day]||{}, state.hub.checks[day]);
   }
   return out;
+}
+/* One-time repair: an earlier build set bunpouSince to the last-PLAY day (often in the past),
+   which retroactively required grammar on already-complete days and broke live streaks. Force the
+   threshold to today (the real "joined the routine" day) once, marked so it never re-runs. */
+function migrateBunpouSince(){
+  if((state.hub.sinceFix||0) >= 1) return false;
+  state.hub.bunpouSince = dayKey(new Date());
+  state.hub.sinceFix = 1;
+  return true;
 }
 /* keep the reminder controls in step with whatever a synced device saved */
 function applyRemoteNotify(n){
@@ -610,7 +623,7 @@ function connect(key){
   watch("kaiwa/"+safe+"/blob",    v=>{ state.kaiwa = v||null; });
   watch("core2000/"+safe+"/state",v=>{ state.core = v||null; });
   watch("bunpou/"+safe+"/state",  v=>{ state.bunpou = v||null; });
-  watch("hub/"+safe+"/log",       v=>{ state.hub = mergeHub(v); applyRemoteNotify(state.hub.notify); });
+  watch("hub/"+safe+"/log",       v=>{ state.hub = mergeHub(v); if(migrateBunpouSince()) pushHub(); applyRemoteNotify(state.hub.notify); });
 }
 
 /* ---------- countdown ---------- */
