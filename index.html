@@ -317,7 +317,7 @@ const coerce = v => { if(v==null) return null; if(typeof v==="string"){ try{retu
 const fromKey = k => { const [y,m,dd]=k.split("-").map(Number); return new Date(y,(m||1)-1,dd||1); }; // suru-day string → Date
 
 /* ---------- state ---------- */
-const state = { soku:[], kaiwa:null, core:null, bunpou:null, hub:{checks:{},tutor:[],record:0,bunpouSince:null,sinceFix:0,notify:{enabled:false,time:"23:00"}}, connected:false };
+const state = { soku:[], kaiwa:null, core:null, bunpou:null, hub:{checks:{},tutor:[],record:0,bunpouSince:null,sinceFix:0,notify:{enabled:false,time:"23:00"}}, connected:false, hubLoaded:false };
 let db=null, safe="", refs=[];
 
 /* derived day-sets */
@@ -603,7 +603,10 @@ function applyRemoteNotify(n){
   if(tm && document.activeElement!==tm) tm.value=n.time||"23:00";
   updateNotifyStatus(); scheduleReminders();
 }
-function pushHub(){ if(!db||!state.connected) return; set(ref(db,"hub/"+safe+"/log"), JSON.stringify(state.hub))
+/* NEVER write the hub before it has loaded at least once — otherwise a watch that fires before the
+   hub snapshot (e.g. Bunpou's, which triggers stampBunpou) would push the empty initial state and
+   OVERWRITE the saved streak/checks. This exact race wiped a live 9-day streak on 2026-09-03. */
+function pushHub(){ if(!db||!state.connected||!state.hubLoaded) return; set(ref(db,"hub/"+safe+"/log"), JSON.stringify(state.hub))
   .catch(e=>{ status("Sync error — check the database rules.","err"); console.warn("[suru] hub write",e); }); }
 
 function disconnect(){ refs.forEach(r=>off(r)); refs=[]; state.connected=false;
@@ -623,7 +626,7 @@ function connect(key){
   watch("kaiwa/"+safe+"/blob",    v=>{ state.kaiwa = v||null; });
   watch("core2000/"+safe+"/state",v=>{ state.core = v||null; });
   watch("bunpou/"+safe+"/state",  v=>{ state.bunpou = v||null; });
-  watch("hub/"+safe+"/log",       v=>{ state.hub = mergeHub(v); if(migrateBunpouSince()) pushHub(); applyRemoteNotify(state.hub.notify); });
+  watch("hub/"+safe+"/log",       v=>{ state.hub = mergeHub(v); state.hubLoaded = true; if(migrateBunpouSince()) pushHub(); applyRemoteNotify(state.hub.notify); });
 }
 
 /* ---------- countdown ---------- */
