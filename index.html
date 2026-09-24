@@ -176,6 +176,25 @@ header.top.scrolled{border-bottom-color:var(--outline-variant);box-shadow:var(--
   border-radius:12px;padding:9px 12px;font-size:.95rem}
 .hint-note{margin-top:11px;font-size:.76rem;color:var(--on-surface-variant);line-height:1.5}
 
+/* patch notes — shared by the Settings list and the What's New popup */
+.vertag{font-size:.72rem;font-weight:700;color:var(--on-surface-variant);background:var(--sc-highest);
+  border-radius:999px;padding:2px 9px;margin-left:6px;vertical-align:middle}
+.pn{background:var(--sc-high);border-radius:16px;padding:13px 15px;margin-bottom:10px}
+.pn:last-child{margin-bottom:0}
+.pn-current{background:var(--secondary-container);color:var(--on-secondary-container);
+  outline:2px solid var(--primary);outline-offset:-1px}
+.pn-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pn-ver{font-weight:800;font-size:.9rem;color:var(--primary)}
+.pn-current .pn-ver{color:var(--on-secondary-container)}
+.pn-title{font-weight:700;font-size:.92rem}
+.pn-badge{font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+  background:var(--primary);color:var(--on-primary);border-radius:999px;padding:2px 8px}
+.pn-date{margin-left:auto;font-size:.74rem;color:var(--on-surface-variant)}
+.pn-current .pn-date{color:inherit;opacity:.8}
+.pn-notes{margin:8px 0 0;padding-left:20px;font-size:.83rem;color:var(--on-surface-variant);line-height:1.5}
+.pn-current .pn-notes{color:inherit;opacity:.95}
+.pn-notes li{margin:2px 0}
+
 footer{margin-top:28px;text-align:center;color:var(--on-surface-variant);font-size:.75rem;opacity:.8}
 .hidden{display:none!important}
 </style>
@@ -276,14 +295,31 @@ footer{margin-top:28px;text-align:center;color:var(--on-surface-variant);font-si
       <div class="cloudstatus" id="notifyStatus">Reminder off.</div>
       <div class="hint-note">Time syncs across your devices. A guaranteed nightly reminder even when the app is fully closed needs a one-time server setup — ask me if you want it.</div>
     </div>
+
+    <div class="card">
+      <h3>Patch Notes <span class="vertag" id="verTag"></span></h3>
+      <p>Every update to する, newest first.</p>
+      <div id="patchList"></div>
+    </div>
   </div>
+</dialog>
+
+<dialog class="sheet" id="whatsNewDlg" aria-label="What's New">
+  <div class="sheet-head">
+    <h2>What’s New</h2>
+    <button id="whatsNewClose" class="icon-btn" title="Close" aria-label="Close what's new">✕</button>
+  </div>
+  <div class="sheet-body" id="whatsNewBody"></div>
 </dialog>
 
 <footer>する · 今日、やる。 · the day resets at 3:00 AM</footer>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getDatabase, ref, onValue, set, off } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
+/* Firebase is loaded LAZILY (dynamic import below) — NOT as a top-level static import — so a
+   failed/blocked SDK fetch (fully offline on the subway, or lie-fi) can't abort this whole
+   module. The UI renders and works from cache without the cloud; sync attaches in the
+   background once the SDK loads. */
+let initializeApp, getDatabase, ref, onValue, set, off;
 
 const firebaseConfig = {
   apiKey: "AIzaSyD9AJbPC9M4gpTyvfIoRcqILq0ZOom1OBs",
@@ -302,6 +338,79 @@ const URLS = {
   kanji:"https://cheungeric02.github.io/core2000-kanji-app/",
   bunpou:"https://cheungeric02.github.io/bunpou-monsters/"
 };
+
+/* ---------- version + patch notes ----------
+   APP_VERSION is tied to the sw.js cache marker ("suru-v10") — bump BOTH together.
+   PATCH_NOTES is newest-first; back-filled from git history. Versions 7/8/9 match the
+   actual service-worker cache numbers of those builds; earlier numbers are interim builds. */
+const APP_VERSION = 10;
+const PATCH_NOTES = [
+  { v:10, date:"2026-09-24", title:"Offline launch + patch notes", notes:[
+    "The installed app now opens instantly from cache — fully offline and without hanging on weak signal.",
+    "Added a Patch Notes list here in Settings, and a one-time “What’s New” popup after each update."
+  ]},
+  { v:9, date:"2026-09-03", title:"Streak-wipe fix", notes:[
+    "Fixed a startup timing bug that could overwrite your saved streak and check-offs with an empty record.",
+    "Your progress is now only written after it has fully loaded from the cloud."
+  ]},
+  { v:8, date:"2026-09-02", title:"Streak restored", notes:[
+    "Fixed the grandfather rule so adding the grammar app no longer broke an existing streak.",
+    "Days before grammar was added keep the old rule; grammar is required only from the day it joined onward."
+  ]},
+  { v:7, date:"2026-09-01", title:"Grammar is required", notes:[
+    "妖怪文法 Bunpō is now part of the daily minimum: Anki + grammar + one more app.",
+    "Added a grammar tile and a “1 more” chip to the minimum row."
+  ]},
+  { v:6, date:"2026-08-20", title:"Open apps directly", notes:[
+    "On Android, tapping through to another app now hands off to the installed app instead of an in-app browser."
+  ]},
+  { v:5, date:"2026-08-18", title:"Mobile settings", notes:[
+    "Made the header sticky and moved Sync + reminders into a full-screen Settings sheet."
+  ]},
+  { v:4, date:"2026-08-18", title:"New look", notes:[
+    "Reskinned the whole app in the Material 3 Expressive style."
+  ]},
+  { v:3, date:"2026-08-18", title:"Bigger icon", notes:[
+    "Enlarged the する home-screen icon so it fills the tile with less blank space."
+  ]},
+  { v:2, date:"2026-08-17", title:"Streak extras", notes:[
+    "Added a longest-streak record, a live countdown to the 3 AM cutoff, and optional streak reminders."
+  ]},
+  { v:1, date:"2026-08-17", title:"First release", notes:[
+    "Launched the する hub — one “today” view across your Japanese apps.",
+    "Streak tracking with a daily minimum and a 3 AM day rollover."
+  ]}
+];
+
+/* escape any text injected into HTML */
+const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+/* ONE shared renderer for a patch-notes entry — used by both the Settings list and the popup */
+function patchEntryHTML(e){
+  const cur = e.v===APP_VERSION;
+  const bullets = (e.notes||[]).map(n=>`<li>${esc(n)}</li>`).join("");
+  return `<div class="pn${cur?" pn-current":""}">`
+    + `<div class="pn-head"><span class="pn-ver">v${esc(e.v)}</span>`
+    + `<span class="pn-title">${esc(e.title)}</span>`
+    + (cur?`<span class="pn-badge">Current</span>`:``)
+    + `<span class="pn-date">${esc(e.date)}</span></div>`
+    + `<ul class="pn-notes">${bullets}</ul></div>`;
+}
+
+/* Snapshot version/first-run state at the very top, BEFORE anything (e.g. connect())
+   writes a する key — otherwise a first-time user prefilled from another app's sync key
+   would look like an existing user. All access wrapped so it never throws. */
+const LS_LAST_SEEN = "suru_lastSeenVer";
+function hasPriorSuruData(){
+  try{
+    for(const k of ["suru_synckey","suru_theme","suru_notify_on","suru_notify_time","suru_notified"]){
+      if(localStorage.getItem(k)!=null) return true;
+    }
+  }catch(e){}
+  return false;
+}
+const _lastSeenRaw = (()=>{ try{ return localStorage.getItem(LS_LAST_SEEN); }catch(e){ return null; } })();
+const _hadPriorData = hasPriorSuruData();
+function writeLastSeen(v){ try{ localStorage.setItem(LS_LAST_SEEN, String(v)); }catch(e){} }
 
 /* ---------- date helpers ----------
    The "day" rolls over at 3 AM, not midnight — so late-night reviews (before bed)
@@ -754,26 +863,43 @@ setInterval(()=>{
 // initialize controls from this device's saved prefs (hub sync may refine them on connect)
 (function initNotify(){ const p=loadNotifyPrefs(); notifyOn.checked=p.enabled; notifyTime.value=p.time; updateNotifyStatus(); scheduleReminders(); })();
 
-/* ---------- init ---------- */
-try{
-  const app=initializeApp(firebaseConfig);
-  db=getDatabase(app);
-}catch(e){ console.error("[suru] firebase init failed",e); status("Cloud sync couldn’t start here.","err"); }
-
+/* ---------- boot ---------- */
 $("keyBtn").addEventListener("click", ()=>{
   if(state.connected){ disconnect(); return; }
   const v=$("keyInput").value.trim(); if(!v){ status("Enter a sync key first.","err"); return; }
+  if(!db){ status("Loading the cloud… one moment (or you may be offline).",""); startFirebase(); return; }
   connect(v);
 });
 $("keyInput").addEventListener("keydown", e=>{ if(e.key==="Enter") $("keyBtn").click(); });
 
-// prefill from any of the apps (same origin → shared localStorage)
+// saved key — localStorage only, no network — for prefill + first-run UI
 let saved="";
 for(const k of ["suru_synckey","jp_cpm_synckey","c2k_synckey","kaiwa_synckey"]){
   try{ const v=localStorage.getItem(k); if(v){ saved=v; break; } }catch(e){}
 }
-if(saved){ $("keyInput").value=saved; if(db) connect(saved); }
-else { render(); }
+if(saved) $("keyInput").value=saved;
+
+// Render the shell IMMEDIATELY — never blocked on the cloud SDK, so the app opens offline.
+render();
+
+/* Bring Firebase up in the background. Dynamic import + try/catch → non-fatal if it can't
+   load (offline / blocked), and the app keeps working from cache either way. */
+async function startFirebase(){
+  if(db) return;                                   // already up
+  try{
+    const [appMod, dbMod] = await Promise.all([
+      import("https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js"),
+      import("https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js")
+    ]);
+    initializeApp = appMod.initializeApp;
+    ({ getDatabase, ref, onValue, set, off } = dbMod);
+    db = getDatabase(initializeApp(firebaseConfig));
+    if(saved) connect(saved);                      // reconnect the saved key once the cloud is ready
+  }catch(e){
+    console.warn("[suru] cloud offline — running from cache", e);
+    if(!state.connected) status("Offline — cloud sync resumes when you reconnect.","");
+  }
+}
 
 /* ---------- settings modal ---------- */
 const settingsDlg=$("settingsDlg");
@@ -784,6 +910,42 @@ $("settingsClose").addEventListener("click", closeSettings);
 // click on the backdrop (outside the sheet content) closes it
 settingsDlg.addEventListener("click", e=>{ if(e.target===settingsDlg) closeSettings(); });
 if(!saved) openSettings();   // first run with no key → surface settings so they can connect
+
+/* ---------- patch notes (Settings list) + What's New popup ---------- */
+// render the full list into Settings (same renderer the popup uses) + show current version
+$("patchList").innerHTML = PATCH_NOTES.map(patchEntryHTML).join("");
+$("verTag").textContent = "v"+APP_VERSION;
+{ const f=document.querySelector("footer"); if(f) f.textContent = f.textContent + " · v"+APP_VERSION; }
+
+const whatsNewDlg=$("whatsNewDlg");
+function closeWhatsNew(){ if(whatsNewDlg.open) whatsNewDlg.close(); }
+$("whatsNewClose").addEventListener("click", closeWhatsNew);
+whatsNewDlg.addEventListener("click", e=>{ if(e.target===whatsNewDlg) closeWhatsNew(); });
+function showWhatsNew(entries){
+  if(!entries || !entries.length) return;
+  $("whatsNewBody").innerHTML = entries.map(patchEntryHTML).join("");
+  try{ whatsNewDlg.showModal(); }catch(e){ whatsNewDlg.setAttribute("open",""); }
+}
+/* Decide what (if anything) to show, exactly once at boot. Purely local — no cloud/user data. */
+function runWhatsNew(){
+  let seenNum=null;
+  if(_lastSeenRaw!=null){ const n=parseInt(_lastSeenRaw,10); if(!isNaN(n)) seenNum=n; }
+
+  if(seenNum!=null && seenNum>=APP_VERSION) return;          // already up to date → nothing
+
+  let entries;
+  if(_lastSeenRaw==null){
+    if(!_hadPriorData){ writeLastSeen(APP_VERSION); return; } // brand-new install → record silently, no popup
+    entries = PATCH_NOTES.slice(0,1);                         // existing pre-feature user → latest entry only
+  } else if(seenNum==null){
+    entries = PATCH_NOTES.slice(0,1);                         // corrupt saved value → just show the latest
+  } else {
+    entries = PATCH_NOTES.filter(e=>e.v>seenNum);             // upgrade → the full delta since last seen
+  }
+  writeLastSeen(APP_VERSION);                                  // write the moment we decide to show → appears exactly once
+  showWhatsNew(entries);
+}
+runWhatsNew();
 
 /* ---------- sticky header shadow on scroll ---------- */
 const topBar=document.querySelector("header.top");
@@ -831,6 +993,9 @@ $("themeBtn").textContent = (document.documentElement.getAttribute("data-theme")
 if("serviceWorker" in navigator && location.protocol==="https:"){
   navigator.serviceWorker.register("sw.js").catch(()=>{});
 }
+
+/* ---------- start cloud sync (after the shell is already rendered) ---------- */
+startFirebase();
 </script>
 </body>
 </html>
